@@ -49,14 +49,14 @@ locals {
 }
 
 resource "local_file" "setup_gpu_lb_service" {
-  content = templatefile("${path.module}/../examples-templates/gpu/lb-service.yaml.tpl", {
+  content = templatefile("${path.module}/../examples/gpu/lb-service.yaml.tpl", {
     tags_csv = local.tags_csv
   })
   filename = "${path.module}/../examples/gpu/lb-service.yaml"
 }
 
 resource "local_file" "setup_neuron_whisper_gradio_ui" {
-  content = templatefile("${path.module}/../examples-templates/neuron/whisper-gradio-ui.yaml.tpl", {
+  content = templatefile("${path.module}/../examples/neuron/whisper-gradio-ui.yaml.tpl", {
     tags_csv = local.tags_csv
   })
   filename = "${path.module}/../examples/neuron/whisper-gradio-ui.yaml"
