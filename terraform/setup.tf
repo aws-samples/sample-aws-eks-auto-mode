@@ -40,12 +40,14 @@ resource "local_file" "setup_neuron" {
   filename = "${path.module}/../nodepools/neuron-nodepool.yaml"
 }
 
-# LoadBalancer Service templates: render the additional-resource-tags annotation
-# from local.tags so NLBs created by the EKS Auto Mode networking controller
-# carry var.tags. Output paths intentionally match the original locations so
-# README instructions ("kubectl apply -f examples/gpu") keep working.
+# Example workload templates: render LoadBalancer Service + Ingress YAMLs with
+# var.tags injected so NLBs (via additional-resource-tags annotation) and ALBs
+# (via per-example IngressClassParams.spec.tags) carry the cluster tags.
+# Output paths intentionally match the original locations so README instructions
+# ("kubectl apply -f examples/gpu") keep working.
 locals {
-  tags_csv = join(",", [for k, v in local.tags : "${k}=${v}"])
+  tags_csv  = join(",", [for k, v in local.tags : "${k}=${v}"])
+  tags_yaml = "    ${indent(4, yamlencode([for k, v in local.tags : { key = k, value = v }]))}"
 }
 
 resource "local_file" "setup_gpu_lb_service" {
@@ -60,4 +62,18 @@ resource "local_file" "setup_neuron_whisper_gradio_ui" {
     tags_csv = local.tags_csv
   })
   filename = "${path.module}/../examples/neuron/whisper-gradio-ui.yaml"
+}
+
+resource "local_file" "setup_graviton_2048_ingress" {
+  content = templatefile("${path.module}/../examples/graviton/2048-ingress.yaml.tpl", {
+    tags_yaml = local.tags_yaml
+  })
+  filename = "${path.module}/../examples/graviton/2048-ingress.yaml"
+}
+
+resource "local_file" "setup_spot_2048_ingress" {
+  content = templatefile("${path.module}/../examples/spot/2048-ingress.yaml.tpl", {
+    tags_yaml = local.tags_yaml
+  })
+  filename = "${path.module}/../examples/spot/2048-ingress.yaml"
 }

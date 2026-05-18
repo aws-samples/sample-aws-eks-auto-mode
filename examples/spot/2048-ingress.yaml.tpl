@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  namespace: game-2048
+  namespace: game-2048-spot
   name: service-2048
 spec:
   ports:
@@ -17,16 +17,18 @@ spec:
 apiVersion: eks.amazonaws.com/v1
 kind: IngressClassParams
 metadata:
-  namespace: game-2048
+  namespace: game-2048-spot
   name: params
 spec:
   scheme: internet-facing
+  tags:
+${tags_yaml}
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:
-  namespace: game-2048
+  namespace: game-2048-spot
   labels:
     app.kubernetes.io/name: LoadBalancerController
   name: alb
@@ -41,7 +43,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  namespace: game-2048
+  namespace: game-2048-spot
   name: ingress-2048
 spec:
   ingressClassName: alb

@@ -184,55 +184,9 @@ resource "null_resource" "delete_gp2_storageclass" {
 }
 
 
-# --------------------------------------------------------------------------
-# Layer 5: IngressClass for tagged ALBs
-#
-# Ingresses without ingressClassName admit to the default IngressClass. We
-# make that default a custom "internet-facing-alb" class whose
-# IngressClassParams carry var.tags, so ALBs/TGs/Listeners created by the
-# EKS Auto Mode ALB controller are tagged. Ingresses with an explicit
-# ingressClassName referencing a different class bypass this; per-Ingress
-# `alb.ingress.kubernetes.io/scheme` annotation overrides the scheme but
-# still uses these IngressClassParams (so tags still apply).
-# --------------------------------------------------------------------------
-resource "kubectl_manifest" "ingressclassparams_internet_facing_alb" {
-  yaml_body = yamlencode({
-    apiVersion = "eks.amazonaws.com/v1"
-    kind       = "IngressClassParams"
-    metadata = {
-      name = "internet-facing-alb"
-    }
-    spec = {
-      scheme = "internet-facing"
-      tags   = [for k, v in local.tags : { key = k, value = v }]
-    }
-  })
-
-  depends_on = [
-    module.eks,
-    aws_iam_role_policy.eks_cluster_allow_custom_tags,
-  ]
-}
-
-resource "kubectl_manifest" "ingressclass_internet_facing_alb" {
-  yaml_body = yamlencode({
-    apiVersion = "networking.k8s.io/v1"
-    kind       = "IngressClass"
-    metadata = {
-      name = "internet-facing-alb"
-      annotations = {
-        "ingressclass.kubernetes.io/is-default-class" = "true"
-      }
-    }
-    spec = {
-      controller = "eks.amazonaws.com/alb"
-      parameters = {
-        apiGroup = "eks.amazonaws.com"
-        kind     = "IngressClassParams"
-        name     = "internet-facing-alb"
-      }
-    }
-  })
-
-  depends_on = [kubectl_manifest.ingressclassparams_internet_facing_alb]
-}
+# Layer 5 (ALB tagging) is handled per-example: each Ingress YAML in examples/
+# is templated and rendered with var.tags injected into its IngressClassParams.
+# This keeps the example self-documenting (the user sees IngressClassParams in
+# the YAML they apply) and avoids the cluster-default-class footgun where an
+# Ingress with an explicit ingressClassName bypasses a global default.
+# See terraform/setup.tf and examples/{graviton,spot}/2048-ingress.yaml.tpl.
