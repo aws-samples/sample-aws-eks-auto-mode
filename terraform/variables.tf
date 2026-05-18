@@ -22,3 +22,11 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
   type        = string
 }
+
+variable "tags" {
+  description = "Tags applied to every taggable AWS resource (provider default_tags, EKS primary SG, NodeClass-launched EC2/EBS/ENI, EBS volumes via StorageClass, ALB via IngressClassParams). Override to integrate with your tagging policy."
+  type        = map(string)
+  default = {
+    "auto-delete" = "never"
+  }
+}

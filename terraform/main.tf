@@ -1,5 +1,9 @@
 provider "aws" {
   region = var.region
+
+  default_tags {
+    tags = var.tags
+  }
 }
 
 # This provider is required for ECR to authenticate with public repos. Please note ECR authentication requires us-east-1 as region hence its hardcoded below.
@@ -7,6 +11,10 @@ provider "aws" {
 provider "aws" {
   alias  = "ecr"
   region = "us-east-1"
+
+  default_tags {
+    tags = var.tags
+  }
 }
 
 provider "helm" {
@@ -44,7 +52,20 @@ locals {
   # Number of AZs we wish to create
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  tags = {
-    Blueprint  = var.name
+  tags = merge(var.tags, {
+    Blueprint = var.name
+  })
+}
+
+provider "kubectl" {
+  apply_retry_count      = 5
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  load_config_file       = false
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
   }
 }

@@ -7,12 +7,12 @@ spec:
   role: ${node_iam_role_name}
   subnetSelectorTerms:
     - tags:
-        karpenter.sh/discovery: "automode-demo"
+        karpenter.sh/discovery: ${cluster_name}
   securityGroupSelectorTerms:
     - tags:
         aws:eks:cluster-name: ${cluster_name}
   tags:
-    karpenter.sh/discovery: "automode-demo"
+    ${indent(4, yamlencode(tags))}
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
