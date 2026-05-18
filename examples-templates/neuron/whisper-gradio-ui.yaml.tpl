@@ -50,9 +50,9 @@ metadata:
   name: whisper-gradio-service
   namespace: whisper-neuron
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-type: external
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "${tags_csv}"
 spec:
   selector:
     app: whisper-gradio
