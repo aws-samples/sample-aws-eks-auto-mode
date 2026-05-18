@@ -46,3 +46,7 @@ examples/pod-autoscaling/keda/sqs-reader-service-account.yaml
 examples/pod-autoscaling/keda/scaledObject.yaml
 examples/pod-autoscaling/keda/prompt-generator-job.yaml
 examples/pod-autoscaling/keda/vllm-qwen3/model-qwen3-4b-fp8-with-sqs.yaml
+
+# Claude Generated Artifacts for Management of Repo
+PLAN.md
+claude-md/
