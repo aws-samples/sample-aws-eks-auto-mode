@@ -29,9 +29,6 @@ spec:
         - key: "eks.amazonaws.com/instance-category"
           operator: In
           values: ["c", "m", "r"]
-        - key: "eks.amazonaws.com/instance-cpu"
-          operator: In
-          values: ["4", "8", "16", "32"]
         - key: "kubernetes.io/arch"
           operator: In
           values: ["arm64"]
