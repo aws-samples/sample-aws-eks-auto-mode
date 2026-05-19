@@ -164,7 +164,11 @@ data:
                 
                 if response.status_code == 200:
                     result = response.json()
-                    generated_text = result['choices'][0]['message']['content']
+                    message = result['choices'][0]['message']
+                    # With --reasoning-parser, vLLM may split output into
+                    # reasoning_content + content; either can be null on a
+                    # given message, so accept whichever is populated.
+                    generated_text = message.get('content') or message.get('reasoning_content') or ''
                     logger.info(f"✓ Successfully processed message {message_id}")
                     logger.info(f"Generated text: {generated_text[:100]}...")
                     return True
