@@ -83,7 +83,7 @@ In these samples we configure the following Nodepools for you:
 - GPU-accelerated compute nodes
 - Inferentia2 ML inference nodes
 
-> 📘 **Note**: Check [NodePool Templates](/nodepool-templates) for detailed configurations.
+> 📘 **Note**: Check [NodePool Templates](nodepool-templates) for detailed configurations.
 
 
 ### 🛠️ NodeClass Configuration

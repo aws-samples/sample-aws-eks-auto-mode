@@ -45,7 +45,7 @@ This example showcases Inferentia2-accelerated workloads using the following com
 ### 1. Setup EKS Auto Mode Cluster
 Deploy the cluster using Terraform:
 ```bash
-cd EKS-Auto-Mode/terraform
+cd sample-aws-eks-auto-mode/terraform
 terraform init
 terraform apply -auto-approve
 $(terraform output -raw configure_kubectl)

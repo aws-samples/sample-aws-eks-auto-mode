@@ -406,7 +406,7 @@ kubectl get pods -n vllm --watch
 > - **6-7 min**: All messages processed, queue becomes empty
 > - **7-8 min**: Pods scale down to zero after cooldown period
 
-#### 10. Observe the Processing
+#### 9. Observe the Processing
 Monitor the actual inference processing:
 
 1. **Check Pod Logs** (model initialization):
