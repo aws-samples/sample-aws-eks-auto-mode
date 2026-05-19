@@ -150,7 +150,7 @@ Workload hostnames once enabled:
 | `examples/graviton` | `https://2048-graviton.<full_domain>` |
 | `examples/spot` | `https://2048-spot.<full_domain>` |
 | `examples/gpu` | `https://gpu.<full_domain>` |
-| `examples/neuron` | `https://whisper.<full_domain>` |
+| `examples/neuron` | `https://neuron.<full_domain>` |
 
 The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert — no `certificateArn` is configured anywhere.
 
@@ -166,7 +166,6 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 2. 🔸 **Storage Classes and PVCs**
    - Native Kubernetes storage integration
    - Optimized for various workload requirements
-   - Example: [Neuron Model Storage Class](/examples/neuron/pvc.yaml)
 
 > **Important**: The EBS CSI driver requires specific IAM permissions to make calls to AWS APIs. EKS Auto Mode simplifies this setup, but you should be aware of the following:
 > - Only platform versions created from a storage class using `ebs.csi.eks.amazonaws.com` as the provisioner can be mounted on nodes created by EKS Auto Mode
@@ -196,10 +195,10 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 - Example: Qwen 3 model inference
 
 ### Neuron Applications
-🎤 [Running Neuron Workloads](examples/neuron/)
+🧠 [Running Neuron Workloads](examples/neuron/)
 - ML inference on Inferentia2
 - Cost-effective acceleration
-- Example: Whisper speech recognition
+- Example: DeepSeek-R1-Qwen3-8B served by vLLM
 
 ### Pod Autoscaling
 📊 [Pod Autoscaling with HPA and KEDA](examples/pod-autoscaling/)

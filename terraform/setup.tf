@@ -54,12 +54,12 @@ resource "local_file" "setup_gpu_lb_service" {
   filename = "${path.module}/../examples/gpu/lb-service.yaml"
 }
 
-resource "local_file" "setup_neuron_whisper_gradio_ui" {
-  content = templatefile("${path.module}/../examples/neuron/whisper-gradio-ui.yaml.tpl", {
+resource "local_file" "setup_neuron_vllm" {
+  content = templatefile("${path.module}/../examples/neuron/vllm-deployment.yaml.tpl", {
     enable_domain = local.enable_domain
     domain        = local.full_domain
   })
-  filename = "${path.module}/../examples/neuron/whisper-gradio-ui.yaml"
+  filename = "${path.module}/../examples/neuron/vllm-deployment.yaml"
 }
 
 resource "local_file" "setup_graviton_2048_ingress" {
