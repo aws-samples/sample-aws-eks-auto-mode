@@ -4,21 +4,40 @@ kind: Service
 metadata:
   name: open-webui-service
   namespace: vllm-inference
-  annotations:
-%{ if enable_domain ~}
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-    external-dns.alpha.kubernetes.io/hostname: gpu.${domain}
-%{ else ~}
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
-%{ endif ~}
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "${tags_csv}"
 spec:
+  type: ClusterIP
   selector:
     app: open-webui-server
-  type: LoadBalancer
-  loadBalancerClass: eks.amazonaws.com/nlb
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8080
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: vllm-inference
+  name: open-webui-ingress
+%{ if enable_domain ~}
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    external-dns.alpha.kubernetes.io/hostname: gpu.${domain}
+%{ endif ~}
+spec:
+  ingressClassName: alb
+  rules:
+%{ if enable_domain ~}
+    - host: gpu.${domain}
+      http:
+%{ else ~}
+    - http:
+%{ endif ~}
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: open-webui-service
+                port:
+                  number: 80

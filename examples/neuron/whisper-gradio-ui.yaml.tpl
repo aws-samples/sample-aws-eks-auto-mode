@@ -49,21 +49,40 @@ kind: Service
 metadata:
   name: whisper-gradio-service
   namespace: whisper-neuron
-  annotations:
-%{ if enable_domain ~}
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
-    external-dns.alpha.kubernetes.io/hostname: whisper.${domain}
-%{ else ~}
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
-%{ endif ~}
-    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-    service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "${tags_csv}"
 spec:
+  type: ClusterIP
   selector:
     app: whisper-gradio
-  type: LoadBalancer
-  loadBalancerClass: eks.amazonaws.com/nlb
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 7860
+    - protocol: TCP
+      port: 80
+      targetPort: 7860
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: whisper-neuron
+  name: whisper-gradio-ingress
+%{ if enable_domain ~}
+  annotations:
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    external-dns.alpha.kubernetes.io/hostname: whisper.${domain}
+%{ endif ~}
+spec:
+  ingressClassName: alb
+  rules:
+%{ if enable_domain ~}
+    - host: whisper.${domain}
+      http:
+%{ else ~}
+    - http:
+%{ endif ~}
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whisper-gradio-service
+                port:
+                  number: 80

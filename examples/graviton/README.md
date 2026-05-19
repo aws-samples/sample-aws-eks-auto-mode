@@ -101,16 +101,23 @@ kubectl apply -f 2048-ingress.yaml
 ```
 
 ### 5. Access the Application
-After the ALB is provisioned (usually takes 5-10 minutes):
 
-1. Get the ALB hostname:
+By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
+
+```bash
+kubectl port-forward -n game-2048 svc/service-2048 8080:80
+# then open http://localhost:8080
+```
+
+If you want to inspect the ALB DNS name directly (e.g. from a bastion or VPN):
+
 ```bash
 kubectl get ingress ingress-2048 \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
   -n game-2048
 ```
 
-2. Open the URL in your browser to play the 2048 game! 🎮
+To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_domain` set to a public Route53 zone you own (see top-level [README](../../README.md#-public-exposure-opt-in)). The example will be reachable at `https://2048-graviton.<full_domain>` once external-dns publishes the record. 🎮
 
 ## Cleanup
 

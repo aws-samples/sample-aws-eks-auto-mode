@@ -31,7 +31,7 @@ This example showcases Inferentia2-accelerated workloads using the following com
 ### 🔧 Key Components
 📦 **Infrastructure**
 - NodePool and NodeClass for Neuron workload management
-- Network Load Balancer for external access
+- Application Load Balancer (Ingress) for HTTP access — internal-scheme by default, opt-in `internet-facing` + HTTPS via `var.base_domain`
 - Persistent storage for compiled models
 
 🧠 **ML Components**
@@ -113,35 +113,27 @@ kubectl apply -f whisper-service.yaml
 kubectl apply -f whisper-gradio-ui.yaml
 ```
 
-> ⚠️ **Security Note**: The default configuration creates a public endpoint. To restrict access to your IP:
->
-> 1. Get your IP:
-> ```bash
-> MY_IP=$(curl -s https://checkip.amazonaws.com)
-> echo "Your IP address is: $MY_IP"
-> ```
->
-> 2. Add to whisper-gradio-ui.yaml:
-> ```yaml
-> spec:
->   loadBalancerSourceRanges:
->     - "${MY_IP}/32"
-> ```
->
-> 3. Apply changes:
-> ```bash
-> kubectl apply -f whisper-gradio-ui.yaml
-> ```
+> 📘 The manifest provisions a `ClusterIP` Service `whisper-gradio-service` and an Ingress `whisper-gradio-ingress` using the cluster-wide `alb` IngressClass. By default the ALB scheme is `internal` (VPC-only) — no public endpoint is created.
 
 ### 4. Access the Application
 
-1. **Get the UI Service URL**:
+By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
+
 ```bash
-kubectl get service -n whisper-neuron whisper-gradio-service \
+kubectl port-forward -n whisper-neuron svc/whisper-gradio-service 8080:80
+# then open http://localhost:8080
+```
+
+If you want to inspect the ALB DNS name directly (e.g. from a bastion or VPN):
+
+```bash
+kubectl get ingress whisper-gradio-ingress -n whisper-neuron \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
 ```
 
-2. Open the URL in your browser to start transcribing! 🎤
+To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_domain` set to a public Route53 zone you own (see top-level [README](../../README.md#-public-exposure-opt-in)). The example will be reachable at `https://whisper.<full_domain>` once external-dns publishes the record.
+
+Once you've reached the UI in your browser, you can start transcribing audio! 🎤
 
 ### 5. Using the Application
 
@@ -161,7 +153,7 @@ If you're unable to record audio in Chrome, this is likely because Chrome blocks
 1. Use the file upload option instead of recording (recommended)
 2. Enable insecure recording in Chrome (use with caution):
    - Go to chrome://flags/#unsafely-treat-insecure-origin-as-secure (copy this in search bar)
-   - Add your LoadBalancer URL to the list
+   - Add the URL you're using to reach the UI (e.g. `http://localhost:8080` for port-forward, or the internal ALB hostname) to the list
    - Restart Chrome
 
 ⚠️ WARNING: Enabling insecure recording reduces browser security. Only do this for testing purposes and only if you trust the network and deployment environment.

@@ -40,19 +40,14 @@ resource "local_file" "setup_neuron" {
   filename = "${path.module}/../nodepools/neuron-nodepool.yaml"
 }
 
-# Example workload templates: render LoadBalancer Service + Ingress YAMLs with
-# var.tags injected so NLBs (via additional-resource-tags annotation) and ALBs
-# (via per-example IngressClassParams.spec.tags) carry the cluster tags.
+# Example workload templates: render Ingress YAMLs with the public hostname
+# branch toggled by var.base_domain. ALBs carry cluster tags via the per-example
+# IngressClassParams.spec.tags rendered in ingressclass.tf.
 # Output paths intentionally match the original locations so README instructions
 # ("kubectl apply -f examples/gpu") keep working.
-locals {
-  tags_csv  = join(",", [for k, v in local.tags : "${k}=${v}"])
-  tags_yaml = "    ${indent(4, yamlencode([for k, v in local.tags : { key = k, value = v }]))}"
-}
 
 resource "local_file" "setup_gpu_lb_service" {
   content = templatefile("${path.module}/../examples/gpu/lb-service.yaml.tpl", {
-    tags_csv      = local.tags_csv
     enable_domain = local.enable_domain
     domain        = local.full_domain
   })
@@ -61,7 +56,6 @@ resource "local_file" "setup_gpu_lb_service" {
 
 resource "local_file" "setup_neuron_whisper_gradio_ui" {
   content = templatefile("${path.module}/../examples/neuron/whisper-gradio-ui.yaml.tpl", {
-    tags_csv      = local.tags_csv
     enable_domain = local.enable_domain
     domain        = local.full_domain
   })

@@ -118,7 +118,6 @@ EKS Auto Mode automates load balancer setup with AWS best practices:
 2. 🔸 **Network Load Balancer (NLB)**
    - Native Kubernetes service integration
    - [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
-   - Example: [GPU Web UI Service](/examples/gpu/lb-service.yaml)
 
 > **Important**: If subnet IDs are not specified in IngressClassParams, AWS requires specific tags on subnets for proper load balancer functionality:
 > - Public subnets: `kubernetes.io/role/elb: "1"`
@@ -150,8 +149,8 @@ Workload hostnames once enabled:
 |---|---|
 | `examples/graviton` | `https://2048-graviton.<full_domain>` |
 | `examples/spot` | `https://2048-spot.<full_domain>` |
-| `examples/gpu` | `http://gpu.<full_domain>` (NLB on :80) |
-| `examples/neuron` | `http://whisper.<full_domain>` (NLB on :80) |
+| `examples/gpu` | `https://gpu.<full_domain>` |
+| `examples/neuron` | `https://whisper.<full_domain>` |
 
 The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert — no `certificateArn` is configured anywhere.
 
