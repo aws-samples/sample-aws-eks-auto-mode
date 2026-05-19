@@ -130,7 +130,7 @@ resource "helm_release" "external_dns" {
     policy        = "sync"
     registry      = "txt"
     txtOwnerId    = "${module.eks.cluster_name}-${var.region}"
-    domainFilters = [local.full_domain]
+    domainFilters = [var.base_domain]
     extraArgs     = ["--aws-zone-type=public", "--exclude-record-types=AAAA"]
     env           = [{ name = "AWS_REGION", value = var.region }]
     serviceAccount = {
