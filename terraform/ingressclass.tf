@@ -12,8 +12,8 @@
 #     so multiple Ingresses share one ALB. Depends on ACM validation so the
 #     wildcard cert exists before any Ingress can attach to the shared ALB.
 #
-# Both branches preserve M3 spec.tags from local.tags so the ALB / TG /
-# Listener carry cluster tags (Layer 5 of the tag-propagation stack).
+# Both branches preserve spec.tags from local.tags so the ALB / TG /
+# Listener carry cluster tags.
 #
 # spec.certificateArn is intentionally NOT set: the ALB controller picks the
 # right cert via SNI from each Ingress's host: header against ACM SANs.

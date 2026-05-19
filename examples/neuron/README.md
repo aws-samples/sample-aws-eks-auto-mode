@@ -22,7 +22,7 @@
 
 This example demonstrates deploying [DeepSeek-R1-0528-Qwen3-8B](https://huggingface.co/deepseek-ai/DeepSeek-R1-0528-Qwen3-8B) on EKS Auto Mode using vLLM on Inferentia2. The container image ships a pre-compiled Neuron artifact, so no separate compile job is needed.
 
-The manifest is ported from the upstream [aws-samples/sample-genai-on-eks-starter-kit](https://github.com/aws-samples/sample-genai-on-eks-starter-kit/blob/main/components/llm-model/vllm/model-deepseek-r1-qwen3-8b-neuron.template.yaml) and adapted for this repo's M4 ALB exposure pattern.
+The manifest is adapted from [aws-samples/sample-genai-on-eks-starter-kit](https://github.com/aws-samples/sample-genai-on-eks-starter-kit/blob/main/components/llm-model/vllm/model-deepseek-r1-qwen3-8b-neuron.template.yaml).
 
 ## Architecture
 This example showcases Inferentia2-accelerated workloads using the following components:
