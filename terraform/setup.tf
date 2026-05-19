@@ -52,28 +52,34 @@ locals {
 
 resource "local_file" "setup_gpu_lb_service" {
   content = templatefile("${path.module}/../examples/gpu/lb-service.yaml.tpl", {
-    tags_csv = local.tags_csv
+    tags_csv      = local.tags_csv
+    enable_domain = local.enable_domain
+    domain        = local.full_domain
   })
   filename = "${path.module}/../examples/gpu/lb-service.yaml"
 }
 
 resource "local_file" "setup_neuron_whisper_gradio_ui" {
   content = templatefile("${path.module}/../examples/neuron/whisper-gradio-ui.yaml.tpl", {
-    tags_csv = local.tags_csv
+    tags_csv      = local.tags_csv
+    enable_domain = local.enable_domain
+    domain        = local.full_domain
   })
   filename = "${path.module}/../examples/neuron/whisper-gradio-ui.yaml"
 }
 
 resource "local_file" "setup_graviton_2048_ingress" {
   content = templatefile("${path.module}/../examples/graviton/2048-ingress.yaml.tpl", {
-    tags_yaml = local.tags_yaml
+    enable_domain = local.enable_domain
+    domain        = local.full_domain
   })
   filename = "${path.module}/../examples/graviton/2048-ingress.yaml"
 }
 
 resource "local_file" "setup_spot_2048_ingress" {
   content = templatefile("${path.module}/../examples/spot/2048-ingress.yaml.tpl", {
-    tags_yaml = local.tags_yaml
+    enable_domain = local.enable_domain
+    domain        = local.full_domain
   })
   filename = "${path.module}/../examples/spot/2048-ingress.yaml"
 }

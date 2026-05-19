@@ -50,11 +50,14 @@ data "aws_availability_zones" "available" {
 
 locals {
   # Number of AZs we wish to create
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
 
   tags = merge(var.tags, {
     Blueprint = var.name
   })
+
+  enable_domain = var.base_domain != ""
+  full_domain   = local.enable_domain ? (var.subdomain != "" ? "${var.subdomain}.${var.base_domain}" : var.base_domain) : ""
 }
 
 provider "kubectl" {

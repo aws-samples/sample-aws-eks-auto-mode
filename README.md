@@ -126,6 +126,37 @@ EKS Auto Mode automates load balancer setup with AWS best practices:
 > 
 > Our Terraform code automatically creates these necessary subnet tags, but you may need to add them manually if using custom networking configurations.
 
+#### 🌍 Public exposure (opt-in)
+
+By default this stack is **safe-by-default**: every example workload exposes an *internal-scheme* load balancer reachable only via `kubectl port-forward`. Nothing is published to the public internet without an explicit opt-in.
+
+To expose the example workloads on a real domain over HTTPS, set `var.base_domain` (and optionally `var.subdomain`) to a public Route53 hosted zone you already own:
+
+```bash
+terraform apply -var='base_domain=example.com' -var='subdomain=automode'
+```
+
+When `base_domain` is set, Terraform will:
+
+- Look up the existing public hosted zone (it does **not** create one — the zone must already exist and be the authoritative DNS for that name).
+- Issue an ACM wildcard certificate `*.<subdomain>.<base_domain>` validated via DNS records added to the zone.
+- Install [external-dns](https://github.com/kubernetes-sigs/external-dns) bound to a Pod Identity IAM role scoped to **only** that hosted zone (not `Route53FullAccess`).
+- Switch the cluster-wide `IngressClass alb` to `internet-facing` with a shared ALB group so all example Ingresses share one load balancer.
+- Render each example with a public hostname and the appropriate annotations.
+
+Workload hostnames once enabled:
+
+| Example | URL |
+|---|---|
+| `examples/graviton` | `https://2048-graviton.<full_domain>` |
+| `examples/spot` | `https://2048-spot.<full_domain>` |
+| `examples/gpu` | `http://gpu.<full_domain>` (NLB on :80) |
+| `examples/neuron` | `http://whisper.<full_domain>` (NLB on :80) |
+
+The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert — no `certificateArn` is configured anywhere.
+
+To revert to safe-by-default, unset `var.base_domain` and re-apply.
+
 ### 💾 EBS CSI Driver Configuration
 EKS Auto Mode automates persistent storage setup with Amazon EBS:
 

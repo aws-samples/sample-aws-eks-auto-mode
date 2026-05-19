@@ -5,7 +5,12 @@ metadata:
   name: open-webui-service
   namespace: vllm-inference
   annotations:
+%{ if enable_domain ~}
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    external-dns.alpha.kubernetes.io/hostname: gpu.${domain}
+%{ else ~}
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+%{ endif ~}
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
     service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "${tags_csv}"
 spec:

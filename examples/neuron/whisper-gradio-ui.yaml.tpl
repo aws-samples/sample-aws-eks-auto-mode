@@ -50,7 +50,12 @@ metadata:
   name: whisper-gradio-service
   namespace: whisper-neuron
   annotations:
+%{ if enable_domain ~}
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    external-dns.alpha.kubernetes.io/hostname: whisper.${domain}
+%{ else ~}
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+%{ endif ~}
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
     service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "${tags_csv}"
 spec:
