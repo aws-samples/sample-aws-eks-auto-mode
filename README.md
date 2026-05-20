@@ -209,18 +209,43 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 
 ## Cleanup
 
-🧹 Follow these steps to remove all resources:
+A standalone cleanup script handles the full teardown lifecycle — draining Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeping for any orphans that survived.
 
 ```bash
-# Navigate to Terraform directory
-cd terraform
+# Recommended: interactive cleanup (prompts per resource)
+./scripts/cleanup.sh
 
-# Initialize and destroy infrastructure
+# Non-interactive: delete everything
+./scripts/cleanup.sh --yes
+
+# Preview what would be deleted
+./scripts/cleanup.sh --dry-run
+
+# Delete everything except storage (PVCs/EBS)
+./scripts/cleanup.sh --yes --keep-storage
+
+# Orphan sweep only (terraform already destroyed)
+./scripts/cleanup.sh --skip-terraform --cluster-name <name> --region <region>
+```
+
+The script runs in three phases:
+1. **Pre-drain** — deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
+2. **Terraform destroy** — runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
+3. **Orphan sweep** — scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
+
+> ⚠️ **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state — they persist as orphans after the cluster is gone. The cleanup script handles these.
+
+<details>
+<summary>Manual alternative (not recommended)</summary>
+
+```bash
+cd terraform
 terraform init
 terraform destroy --auto-approve
 ```
 
-> ⚠️ **Warning**: This will delete all cluster resources. Make sure to back up any important data.
+This only destroys Terraform-managed resources. You will need to manually find and delete any orphaned load balancers, volumes, instances, security groups, IAM roles, OIDC providers, and CloudWatch log groups.
+</details>
 
 ## Security Considerations
 Our code is continuously scanned using [Checkov](https://www.checkov.io/5.Policy%20Index/kubernetes.html). The following security considerations are documented for transparency:
