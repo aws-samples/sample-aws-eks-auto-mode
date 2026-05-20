@@ -14,6 +14,7 @@ KEEP_STORAGE=false
 REGION=""
 CLUSTER_NAME=""
 FULL_DOMAIN=""
+CLUSTER_OIDC_ID=""
 SKIP_TERRAFORM=false
 SKIP_KEDA=false
 
@@ -221,6 +222,15 @@ phase_predrain() {
   if [[ "$cluster_status" != "ACTIVE" ]]; then
     warn "Cluster not active (status: $cluster_status). Skipping pre-drain."
     return 0
+  fi
+
+  # Capture OIDC issuer ID while cluster is alive (needed for post-destroy sweep)
+  if [[ -z "$CLUSTER_OIDC_ID" ]]; then
+    CLUSTER_OIDC_ID=$(aws eks describe-cluster --name "$CLUSTER_NAME" --region "$REGION" \
+      --query 'cluster.identity.oidc.issuer' --output text 2>/dev/null | grep -oP '[A-F0-9]{32}$' || true)
+    if [[ -n "$CLUSTER_OIDC_ID" ]]; then
+      log "Captured OIDC provider ID: $CLUSTER_OIDC_ID"
+    fi
   fi
 
   aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION" --quiet 2>/dev/null || true
@@ -768,29 +778,24 @@ sweep_iam_roles() {
 
 sweep_oidc_providers() {
   log "Checking for orphaned OIDC providers..."
+  if [[ -z "$CLUSTER_OIDC_ID" ]]; then
+    warn "OIDC provider ID not captured (cluster was already gone during pre-drain). Skipping."
+    warn "  To clean up manually: aws iam list-open-id-connect-providers"
+    return
+  fi
+
   local providers
   providers=$(aws iam list-open-id-connect-providers --query "OpenIDConnectProviderList[].Arn" \
     --output json 2>/dev/null | jq -r '.[]' || true)
   [[ -z "$providers" ]] && { ok "No OIDC providers found"; return; }
 
   for provider_arn in $providers; do
-    local url
-    url=$(aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$provider_arn" \
-      --query "Url" --output text 2>/dev/null || true)
-    if [[ "$url" == *"$CLUSTER_NAME"* ]] || [[ "$url" == *"eks"*"$REGION"* ]]; then
-      local cluster_match=false
-      local eks_cluster_id
-      eks_cluster_id=$(echo "$url" | grep -oP '[A-F0-9]{32}' || true)
-      if [[ -n "$eks_cluster_id" ]]; then
-        cluster_match=true
-      fi
-      if $cluster_match || [[ "$url" == *"$CLUSTER_NAME"* ]]; then
-        if prompt_resource "OIDC Provider" "$provider_arn" "$url"; then
-          run_or_dry aws iam delete-open-id-connect-provider --open-id-connect-provider-arn "$provider_arn"
-          ((DELETED++)) || true
-        else
-          ((KEPT++)) || true
-        fi
+    if [[ "$provider_arn" == *"$CLUSTER_OIDC_ID"* ]]; then
+      if prompt_resource "OIDC Provider" "$provider_arn" "ID: $CLUSTER_OIDC_ID"; then
+        run_or_dry aws iam delete-open-id-connect-provider --open-id-connect-provider-arn "$provider_arn"
+        ((DELETED++)) || true
+      else
+        ((KEPT++)) || true
       fi
     fi
   done
