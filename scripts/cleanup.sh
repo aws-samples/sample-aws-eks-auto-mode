@@ -364,6 +364,10 @@ phase_keda_destroy() {
     ok "No KEDA terraform directory found"
     return
   fi
+  if [[ ! -f "$KEDA_TF_DIR/terraform.tfstate" ]]; then
+    ok "No KEDA terraform state file (never applied)"
+    return
+  fi
   local resource_count
   resource_count=$(cd "$KEDA_TF_DIR" && terraform state list 2>/dev/null | wc -l || echo "0")
   if [[ "$resource_count" -eq 0 ]]; then
@@ -372,6 +376,12 @@ phase_keda_destroy() {
   fi
   log "Destroying KEDA resources ($resource_count in state)..."
   if confirm "Run terraform destroy in $KEDA_TF_DIR?"; then
+    log "  Running terraform init..."
+    run_or_dry bash -c "cd '$KEDA_TF_DIR' && terraform init -input=false -no-color" || {
+      err "  terraform init failed in KEDA dir. Skipping KEDA destroy."
+      ((ERRORS++)) || true
+      return
+    }
     run_or_dry bash -c "cd '$KEDA_TF_DIR' && terraform destroy -auto-approve"
   else
     warn "Skipped KEDA terraform destroy"
@@ -388,6 +398,12 @@ phase_main_destroy() {
   fi
   log "Destroying main infrastructure ($resource_count resources in state)..."
   if confirm "Run terraform destroy in $TF_DIR?"; then
+    log "  Running terraform init..."
+    run_or_dry bash -c "cd '$TF_DIR' && terraform init -input=false -no-color" || {
+      err "  terraform init failed. Skipping main destroy."
+      ((ERRORS++)) || true
+      return
+    }
     run_or_dry bash -c "cd '$TF_DIR' && terraform destroy -auto-approve"
   else
     warn "Skipped main terraform destroy"
