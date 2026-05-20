@@ -13,6 +13,7 @@ YES=false
 KEEP_STORAGE=false
 REGION=""
 CLUSTER_NAME=""
+FULL_DOMAIN=""
 SKIP_TERRAFORM=false
 SKIP_KEDA=false
 
@@ -43,6 +44,7 @@ OPTIONS:
   --keep-storage     Keep all PVC/EBS/EFS resources (skip storage prompts)
   --region REGION    AWS region (auto-detected from terraform state if omitted)
   --cluster-name N   Cluster name (auto-detected from terraform state if omitted)
+  --domain DOMAIN    Full domain (e.g. eks.example.com); auto-detected if omitted
   --skip-terraform   Skip terraform destroy (only run pre-drain + post-sweep)
   --skip-keda        Skip KEDA terraform destroy
   -h, --help         Show this help
@@ -157,8 +159,54 @@ detect_cluster_info() {
     exit 1
   fi
 
+  # Detect FULL_DOMAIN if not provided via --domain
+  if [[ -z "$FULL_DOMAIN" ]]; then
+    if [[ -f "$TF_DIR/terraform.tfstate" ]]; then
+      FULL_DOMAIN=$(cd "$TF_DIR" && terraform output -raw full_domain 2>/dev/null || true)
+      if [[ -z "$FULL_DOMAIN" ]]; then
+        FULL_DOMAIN=$(cd "$TF_DIR" && terraform output -raw domain 2>/dev/null || true)
+      fi
+      if [[ -z "$FULL_DOMAIN" ]]; then
+        local base_domain subdomain
+        base_domain=$(cd "$TF_DIR" && terraform output -raw base_domain 2>/dev/null || true)
+        subdomain=$(cd "$TF_DIR" && terraform output -raw subdomain 2>/dev/null || true)
+        if [[ -n "$base_domain" ]]; then
+          if [[ -n "$subdomain" ]]; then
+            FULL_DOMAIN="${subdomain}.${base_domain}"
+          else
+            FULL_DOMAIN="$base_domain"
+          fi
+        fi
+      fi
+    fi
+    # Fallback: check tfvars
+    if [[ -z "$FULL_DOMAIN" ]]; then
+      local tfvars_file=""
+      for f in "$TF_DIR/terraform.tfvars" "$TF_DIR"/*.auto.tfvars; do
+        [[ -f "$f" ]] && tfvars_file="$f" && break
+      done
+      if [[ -n "$tfvars_file" ]]; then
+        local base_domain subdomain
+        base_domain=$(grep -E '^\s*base_domain\s*=' "$tfvars_file" 2>/dev/null | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+        subdomain=$(grep -E '^\s*subdomain\s*=' "$tfvars_file" 2>/dev/null | head -1 | sed 's/.*=\s*"\(.*\)".*/\1/' || true)
+        if [[ -n "$base_domain" ]]; then
+          if [[ -n "$subdomain" ]]; then
+            FULL_DOMAIN="${subdomain}.${base_domain}"
+          else
+            FULL_DOMAIN="$base_domain"
+          fi
+        fi
+      fi
+    fi
+  fi
+
   log "Cluster: $CLUSTER_NAME"
   log "Region:  $REGION"
+  if [[ -n "$FULL_DOMAIN" ]]; then
+    log "Domain:  $FULL_DOMAIN"
+  else
+    warn "Domain:  not detected (Route53 sweep will be skipped; use --domain to specify)"
+  fi
 }
 
 # ─── Phase 1: Pre-drain (requires live cluster) ──────────────────────────────
@@ -561,7 +609,7 @@ sweep_ebs_volumes() {
       is_cluster=true
     elif [[ "$vol_name" == *"$CLUSTER_NAME"* ]]; then
       is_cluster=true
-    elif [[ "$vol_name" == *"automode"*"dynamic-pvc"* ]]; then
+    elif [[ "$vol_name" == "${CLUSTER_NAME}-"*"dynamic-pvc"* ]]; then
       is_cluster=true
     fi
 
@@ -806,6 +854,13 @@ sweep_kms_keys() {
 
 sweep_route53_records() {
   log "Checking for orphaned Route53 records..."
+
+  if [[ -z "$FULL_DOMAIN" ]]; then
+    warn "Cannot detect domain; skipping Route53 sweep. Use --domain to specify."
+    return
+  fi
+
+  local txt_owner_id="${CLUSTER_NAME}-${REGION}"
   local hosted_zones
   hosted_zones=$(aws route53 list-hosted-zones --query "HostedZones[].Id" --output json 2>/dev/null | jq -r '.[]' || true)
   [[ -z "$hosted_zones" ]] && { ok "No hosted zones found"; return; }
@@ -813,6 +868,12 @@ sweep_route53_records() {
   for zone_id in $hosted_zones; do
     local zone_name
     zone_name=$(aws route53 get-hosted-zone --id "$zone_id" --query "HostedZone.Name" --output text 2>/dev/null || true)
+
+    # Only process zones that could contain our domain records
+    # zone_name has trailing dot, FULL_DOMAIN does not
+    if [[ "${FULL_DOMAIN}." != *"${zone_name}" ]]; then
+      continue
+    fi
 
     local records
     records=$(aws route53 list-resource-record-sets --hosted-zone-id "$zone_id" \
@@ -825,21 +886,25 @@ sweep_route53_records() {
       record_type=$(echo "$record" | jq -r '.Type')
 
       local is_cluster=false
-      if [[ "$record_name" == *"$CLUSTER_NAME"* ]]; then
-        is_cluster=true
-      fi
-      if echo "$record" | jq -e '.ResourceRecords[]? | select(.Value | contains("Heritage=external-dns"))' &>/dev/null; then
-        is_cluster=true
-      fi
-      if echo "$record" | jq -e '.AliasTarget.DNSName? // "" | contains("elb.amazonaws.com")' &>/dev/null 2>&1; then
-        if echo "$record" | jq -e '.AliasTarget.DNSName' &>/dev/null; then
-          local alias_dns
-          alias_dns=$(echo "$record" | jq -r '.AliasTarget.DNSName // ""')
-          if [[ "$alias_dns" == *"elb"*"amazonaws.com"* ]]; then
+
+      case "$record_type" in
+        A|CNAME)
+          # Match A/CNAME records whose name ends with .${FULL_DOMAIN}.
+          if [[ "$record_name" == *".${FULL_DOMAIN}." ]] || [[ "$record_name" == "${FULL_DOMAIN}." ]]; then
             is_cluster=true
           fi
-        fi
-      fi
+          # Also match ACM validation CNAMEs in this zone
+          if [[ "$record_type" == "CNAME" && "$record_name" == *"_acm-validations"* ]]; then
+            is_cluster=true
+          fi
+          ;;
+        TXT)
+          # Match TXT records whose value contains the txtOwnerId
+          if echo "$record" | jq -e ".ResourceRecords[]? | select(.Value | contains(\"$txt_owner_id\"))" &>/dev/null; then
+            is_cluster=true
+          fi
+          ;;
+      esac
 
       if $is_cluster; then
         if prompt_resource "Route53 Record" "$record_name" "$record_type in $zone_name"; then
@@ -866,7 +931,7 @@ sweep_sqs_queues() {
   local queues
   queues=$(aws sqs list-queues --region "$REGION" \
     --queue-name-prefix "$CLUSTER_NAME" \
-    --query "QueueUrls[]" --output json 2>/dev/null | jq -r '.[]' || true)
+    --query "QueueUrls[]" --output json 2>/dev/null | jq -r '.[]? // empty' || true)
   [[ -z "$queues" ]] && { ok "No cluster SQS queues found"; return; }
 
   for queue_url in $queues; do
@@ -973,6 +1038,7 @@ main() {
       --keep-storage) KEEP_STORAGE=true; shift ;;
       --region) REGION="$2"; shift 2 ;;
       --cluster-name) CLUSTER_NAME="$2"; shift 2 ;;
+      --domain) FULL_DOMAIN="$2"; shift 2 ;;
       --skip-terraform) SKIP_TERRAFORM=true; shift ;;
       --skip-keda) SKIP_KEDA=true; shift ;;
       -h|--help) usage ;;
@@ -988,6 +1054,7 @@ main() {
   log "  EKS Auto Mode Cleanup"
   log "  Cluster: $CLUSTER_NAME"
   log "  Region:  $REGION"
+  log "  Domain:  ${FULL_DOMAIN:-<not detected>}"
   log "  Dry-run: $DRY_RUN"
   log "  Auto-yes: $YES"
   log "  Keep storage: $KEEP_STORAGE"
