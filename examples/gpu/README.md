@@ -41,7 +41,7 @@ This example showcases GPU-accelerated workloads on EKS Auto Mode using the foll
 ### 🔧 Key Components
 📦 **Infrastructure**
 - NodePool and NodeClass for GPU workload management
-- Network Load Balancer for external access
+- Application Load Balancer (Ingress) for HTTP access — internal-scheme by default, opt-in `internet-facing` + HTTPS via `var.base_domain`
 
 🧠 **AI Components**
 - Hugging Face model deployment ([Qwen 3 32b fp8](https://huggingface.co/Qwen/Qwen3-32B-FP8))
@@ -121,65 +121,35 @@ kubectl apply -f model-qwen3-32b-fp8.yaml
 kubectl apply -f open-webui.yaml
 ```
 
-### 6. Configure Load Balancer
-Set up the Network Load Balancer for external access:
+### 6. Deploy the Service and Ingress
+Apply the ClusterIP Service + ALB Ingress that front the Web UI:
 
 ```bash
-# Deploy NLB service
 kubectl apply -f lb-service.yaml
 ```
 
-> ⚠️ **Security Note**: The default configuration creates a GenAI public endpoint with unrestricted access. To enhance security by restricting access to your IP address only, modify the lb-service.yaml file to add the `loadBalancerSourceRanges` field:
->
-> 1. Get your current public IP address:
-> ```bash
-> MY_IP=$(curl -s https://checkip.amazonaws.com)
-> echo "Your IP address is: $MY_IP"
-> ```
->
-> 2. Edit the lb-service.yaml file to add IP restriction. The file should look like this:
-> ```yaml
-> apiVersion: v1
-> kind: Service
-> metadata:
->   name: open-webui-service
->   namespace: vllm-inference
->   annotations:
->     service.beta.kubernetes.io/aws-load-balancer-type: external
->     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
->     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-> spec:
->   selector:
->     app: open-webui-server
->   type: LoadBalancer
->   loadBalancerClass: eks.amazonaws.com/nlb
->   loadBalancerSourceRanges:
->     - "${MY_IP}/32"    # Restrict to your current IP address
->   ports:
->   - protocol: TCP
->     port: 80
->     targetPort: 8080
-> ```
->
-> 3. Apply the updated service configuration:
-> ```bash
-> kubectl apply -f lb-service.yaml
-> ```
->
-> This approach is recommended over directly modifying the Load Balancer security group, as changes to the security group may be rolled back by Auto Mode functionality.
+> 📘 The manifest provisions a `ClusterIP` Service `open-webui-service` (port 80 → 8080) and an Ingress `open-webui-ingress` using the cluster-wide `alb` IngressClass. By default the ALB scheme is `internal` (VPC-only) — no public endpoint is created.
 
 ### 7. Access the Application
-After the NLB is provisioned (usually takes 5-10 minutes):
 
-1. **Get the NLB hostname**:
+By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
+
 ```bash
-kubectl get service open-webui-service \
+kubectl port-forward -n vllm-inference svc/open-webui-service 8080:80
+# then open http://localhost:8080
+```
+
+If you want to inspect the ALB DNS name directly (e.g. from a bastion or VPN):
+
+```bash
+kubectl get ingress open-webui-ingress \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
   -n vllm-inference
 ```
 
-2. Open the URL in your browser to interact with the model! 🤖
-> ⚠️ **Select a Model**: If you are unable to select a model, it means the model is still being downloaded as is not yet being served by our inferencing server pod. Just refresh until you see a model available.
+To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_domain` set to a public Route53 zone you own (see top-level [README](../../README.md#-public-exposure-opt-in)). The example will be reachable at `https://gpu.<full_domain>` once external-dns publishes the record.
+
+> ⚠️ **Select a Model**: If you are unable to select a model, it means the model is still being downloaded and is not yet being served by our inferencing server pod. Just refresh until you see a model available.
 
 
 ## Cleanup
@@ -214,6 +184,8 @@ terraform destroy --auto-approve
 
 > ⚠️ **Warning**: This will delete the entire EKS cluster and all associated resources. Make sure you want to proceed.
 
+> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
+
 ## Troubleshooting
 
 🔧 Common issues and their solutions:
@@ -232,10 +204,16 @@ terraform destroy --auto-approve
    - Verify Hugging Face token is valid
 
 ### 🔄 Load Balancer Issues
-1. **NLB Status**
-   - Monitor provisioning progress
-   - Check service endpoints
-   - Verify security group settings
+1. **Ingress / ALB Status**
+   - Check Ingress provisioning:
+     ```bash
+     kubectl describe ingress open-webui-ingress -n vllm-inference
+     ```
+   - Check ALB controller logs:
+     ```bash
+     kubectl logs -n kube-system deployment/aws-load-balancer-controller
+     ```
+   - Verify the ALB hostname resolves and target group health is green
 
 ### 💻 Resource Constraints
 1. **GPU Capacity**

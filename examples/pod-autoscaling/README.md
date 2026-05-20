@@ -406,7 +406,7 @@ kubectl get pods -n vllm --watch
 > - **6-7 min**: All messages processed, queue becomes empty
 > - **7-8 min**: Pods scale down to zero after cooldown period
 
-#### 10. Observe the Processing
+#### 9. Observe the Processing
 Monitor the actual inference processing:
 
 1. **Check Pod Logs** (model initialization):
@@ -436,6 +436,9 @@ watch "aws sqs get-queue-attributes --queue-url $QUEUE_URL --attribute-names App
 kubectl delete job prompt-generator -n keda --ignore-not-found
 kubectl delete -f scaledObject.yaml --ignore-not-found
 kubectl delete -f vllm-qwen3/model-qwen3-4b-fp8-with-sqs.yaml --ignore-not-found
+
+# Remove GPU NodePool created in step 4
+kubectl delete -f ../../../nodepools/gpu-nodepool.yaml --ignore-not-found
 ```
 
 #### 2. Uninstall KEDA
@@ -461,3 +464,5 @@ terraform destroy -auto-approve
 ```
 
 > ⚠️ **Warning**: This will remove all AWS resources created for the KEDA demo, including the SQS queue and IAM roles.
+
+> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.

@@ -21,5 +21,6 @@ module "eks" {
     enabled    = true
     node_pools = ["general-purpose"]
   }
-  tags = local.tags
+  cluster_tags = local.tags
+  tags         = local.tags
 }

@@ -83,7 +83,7 @@ In these samples we configure the following Nodepools for you:
 - GPU-accelerated compute nodes
 - Inferentia2 ML inference nodes
 
-> 📘 **Note**: Check [NodePool Templates](/nodepool-templates) for detailed configurations.
+> 📘 **Note**: Check [NodePool Templates](nodepool-templates) for detailed configurations.
 
 
 ### 🛠️ NodeClass Configuration
@@ -118,13 +118,43 @@ EKS Auto Mode automates load balancer setup with AWS best practices:
 2. 🔸 **Network Load Balancer (NLB)**
    - Native Kubernetes service integration
    - [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
-   - Example: [GPU Web UI Service](/examples/gpu/lb-service.yaml)
 
 > **Important**: If subnet IDs are not specified in IngressClassParams, AWS requires specific tags on subnets for proper load balancer functionality:
 > - Public subnets: `kubernetes.io/role/elb: "1"`
 > - Private subnets: `kubernetes.io/role/internal-elb: "1"`
 > 
 > Our Terraform code automatically creates these necessary subnet tags, but you may need to add them manually if using custom networking configurations.
+
+#### 🌍 Public exposure (opt-in)
+
+By default this stack is **safe-by-default**: every example workload exposes an *internal-scheme* load balancer reachable only via `kubectl port-forward`. Nothing is published to the public internet without an explicit opt-in.
+
+To expose the example workloads on a real domain over HTTPS, set `var.base_domain` (and optionally `var.subdomain`) to a public Route53 hosted zone you already own:
+
+```bash
+terraform apply -var='base_domain=example.com' -var='subdomain=automode'
+```
+
+When `base_domain` is set, Terraform will:
+
+- Look up the existing public hosted zone (it does **not** create one — the zone must already exist and be the authoritative DNS for that name).
+- Issue an ACM wildcard certificate `*.<subdomain>.<base_domain>` validated via DNS records added to the zone.
+- Install [external-dns](https://github.com/kubernetes-sigs/external-dns) bound to a Pod Identity IAM role scoped to **only** that hosted zone (not `Route53FullAccess`).
+- Switch the cluster-wide `IngressClass alb` to `internet-facing` with a shared ALB group so all example Ingresses share one load balancer.
+- Render each example with a public hostname and the appropriate annotations.
+
+Workload hostnames once enabled:
+
+| Example | URL |
+|---|---|
+| `examples/graviton` | `https://2048-graviton.<full_domain>` |
+| `examples/spot` | `https://2048-spot.<full_domain>` |
+| `examples/gpu` | `https://gpu.<full_domain>` |
+| `examples/neuron` | `https://neuron.<full_domain>` |
+
+The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert — no `certificateArn` is configured anywhere.
+
+To revert to safe-by-default, unset `var.base_domain` and re-apply.
 
 ### 💾 EBS CSI Driver Configuration
 EKS Auto Mode automates persistent storage setup with Amazon EBS:
@@ -136,7 +166,6 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 2. 🔸 **Storage Classes and PVCs**
    - Native Kubernetes storage integration
    - Optimized for various workload requirements
-   - Example: [Neuron Model Storage Class](/examples/neuron/pvc.yaml)
 
 > **Important**: The EBS CSI driver requires specific IAM permissions to make calls to AWS APIs. EKS Auto Mode simplifies this setup, but you should be aware of the following:
 > - Only platform versions created from a storage class using `ebs.csi.eks.amazonaws.com` as the provisioner can be mounted on nodes created by EKS Auto Mode
@@ -166,10 +195,10 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 - Example: Qwen 3 model inference
 
 ### Neuron Applications
-🎤 [Running Neuron Workloads](examples/neuron/)
+🧠 [Running Neuron Workloads](examples/neuron/)
 - ML inference on Inferentia2
 - Cost-effective acceleration
-- Example: Whisper speech recognition
+- Example: DeepSeek-R1-Qwen3-8B served by vLLM
 
 ### Pod Autoscaling
 📊 [Pod Autoscaling with HPA and KEDA](examples/pod-autoscaling/)
@@ -180,18 +209,43 @@ EKS Auto Mode automates persistent storage setup with Amazon EBS:
 
 ## Cleanup
 
-🧹 Follow these steps to remove all resources:
+A standalone cleanup script handles the full teardown lifecycle — draining Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeping for any orphans that survived.
 
 ```bash
-# Navigate to Terraform directory
-cd terraform
+# Recommended: interactive cleanup (prompts per resource)
+./scripts/cleanup.sh
 
-# Initialize and destroy infrastructure
+# Non-interactive: delete everything
+./scripts/cleanup.sh --yes
+
+# Preview what would be deleted
+./scripts/cleanup.sh --dry-run
+
+# Delete everything except storage (PVCs/EBS)
+./scripts/cleanup.sh --yes --keep-storage
+
+# Orphan sweep only (terraform already destroyed)
+./scripts/cleanup.sh --skip-terraform --cluster-name <name> --region <region>
+```
+
+The script runs in three phases:
+1. **Pre-drain** — deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
+2. **Terraform destroy** — runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
+3. **Orphan sweep** — scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
+
+> ⚠️ **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state — they persist as orphans after the cluster is gone. The cleanup script handles these.
+
+<details>
+<summary>Manual alternative (not recommended)</summary>
+
+```bash
+cd terraform
 terraform init
 terraform destroy --auto-approve
 ```
 
-> ⚠️ **Warning**: This will delete all cluster resources. Make sure to back up any important data.
+This only destroys Terraform-managed resources. You will need to manually find and delete any orphaned load balancers, volumes, instances, security groups, IAM roles, OIDC providers, and CloudWatch log groups.
+</details>
 
 ## Security Considerations
 Our code is continuously scanned using [Checkov](https://www.checkov.io/5.Policy%20Index/kubernetes.html). The following security considerations are documented for transparency:

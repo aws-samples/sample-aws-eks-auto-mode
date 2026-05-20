@@ -7,12 +7,12 @@ spec:
   role: ${node_iam_role_name}
   subnetSelectorTerms:
     - tags:
-        karpenter.sh/discovery: "automode-demo"
+        karpenter.sh/discovery: ${cluster_name}
   securityGroupSelectorTerms:
     - tags:
         aws:eks:cluster-name: ${cluster_name}
   tags:
-    karpenter.sh/discovery: "automode-demo"
+    ${indent(4, yamlencode(tags))}
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -29,9 +29,6 @@ spec:
         - key: "eks.amazonaws.com/instance-category"
           operator: In
           values: ["c", "m", "r"]
-        - key: "eks.amazonaws.com/instance-cpu"
-          operator: In
-          values: ["4", "8", "16", "32"]
         - key: "kubernetes.io/arch"
           operator: In
           values: ["arm64"]
