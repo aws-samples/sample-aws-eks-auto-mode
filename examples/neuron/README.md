@@ -152,6 +152,8 @@ cd ../../terraform
 terraform destroy --auto-approve
 ```
 
+> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
+
 ## Troubleshooting
 
 🔧 Common issues and their solutions:

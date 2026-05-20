@@ -464,3 +464,5 @@ terraform destroy -auto-approve
 ```
 
 > ⚠️ **Warning**: This will remove all AWS resources created for the KEDA demo, including the SQS queue and IAM roles.
+
+> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
