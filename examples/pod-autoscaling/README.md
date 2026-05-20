@@ -436,6 +436,9 @@ watch "aws sqs get-queue-attributes --queue-url $QUEUE_URL --attribute-names App
 kubectl delete job prompt-generator -n keda --ignore-not-found
 kubectl delete -f scaledObject.yaml --ignore-not-found
 kubectl delete -f vllm-qwen3/model-qwen3-4b-fp8-with-sqs.yaml --ignore-not-found
+
+# Remove GPU NodePool created in step 4
+kubectl delete -f ../../../nodepools/gpu-nodepool.yaml --ignore-not-found
 ```
 
 #### 2. Uninstall KEDA
