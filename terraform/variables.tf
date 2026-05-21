@@ -42,3 +42,9 @@ variable "subdomain" {
   type        = string
   default     = ""
 }
+
+variable "ephemeral_storage_kms_key_id" {
+  description = "Optional KMS key ID for encrypting ephemeral storage on Auto Mode nodes. Leave empty to use default encryption."
+  type        = string
+  default     = ""
+}

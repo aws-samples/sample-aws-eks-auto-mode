@@ -9,6 +9,7 @@ resource "local_file" "setup_graviton" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/graviton-nodepool.yaml"
 }
@@ -18,6 +19,7 @@ resource "local_file" "setup_spot" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/spot-nodepool.yaml"
 }
@@ -27,6 +29,7 @@ resource "local_file" "setup_gpu" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/gpu-nodepool.yaml"
 }
@@ -36,6 +39,7 @@ resource "local_file" "setup_neuron" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/neuron-nodepool.yaml"
 }
