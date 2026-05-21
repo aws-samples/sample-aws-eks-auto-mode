@@ -48,3 +48,9 @@ variable "ephemeral_storage_kms_key_id" {
   type        = string
   default     = ""
 }
+
+variable "enable_observability" {
+  description = "Enable CloudWatch Container Insights via EKS addon. Provides cluster metrics, pod logs, and Application Signals tracing. Incurs CloudWatch costs."
+  type        = bool
+  default     = false
+}
