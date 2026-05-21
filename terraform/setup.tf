@@ -44,6 +44,26 @@ resource "local_file" "setup_neuron" {
   filename = "${path.module}/../nodepools/neuron-nodepool.yaml"
 }
 
+resource "local_file" "setup_odcr_nodepool" {
+  content = templatefile("${path.module}/../examples/capacity-reservation/odcr-nodepool.yaml.tpl", {
+    node_iam_role_name = module.eks.node_iam_role_name
+    cluster_name       = module.eks.cluster_name
+    tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
+  })
+  filename = "${path.module}/../examples/capacity-reservation/odcr-nodepool.yaml"
+}
+
+resource "local_file" "setup_static_nodepool" {
+  content = templatefile("${path.module}/../examples/static-capacity/static-nodepool.yaml.tpl", {
+    node_iam_role_name = module.eks.node_iam_role_name
+    cluster_name       = module.eks.cluster_name
+    tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
+  })
+  filename = "${path.module}/../examples/static-capacity/static-nodepool.yaml"
+}
+
 # Example workload templates: render Ingress YAMLs with the public hostname
 # branch toggled by var.base_domain. ALBs carry cluster tags via the per-example
 # IngressClassParams.spec.tags rendered in ingressclass.tf.

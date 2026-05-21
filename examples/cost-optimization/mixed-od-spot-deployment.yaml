@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cost-optimization
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-mixed-capacity
+  namespace: cost-optimization
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: web-mixed-capacity
+  template:
+    metadata:
+      labels:
+        app: web-mixed-capacity
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: karpenter.sh/capacity-type
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: web-mixed-capacity
+      tolerations:
+        - key: "spot"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+        - name: nginx
+          image: public.ecr.aws/nginx/nginx:latest
+          resources:
+            requests:
+              cpu: 256m
+              memory: 512Mi

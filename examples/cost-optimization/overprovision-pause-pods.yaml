@@ -1,0 +1,39 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: pause-pods
+value: -1
+globalDefault: false
+description: "Low-priority class for overprovision pause pods. These get preempted when real workloads arrive."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: overprovision
+  namespace: cost-optimization
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: overprovision
+  template:
+    metadata:
+      labels:
+        app: overprovision
+    spec:
+      priorityClassName: pause-pods
+      terminationGracePeriodSeconds: 0
+      tolerations:
+        - key: "arm64"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
