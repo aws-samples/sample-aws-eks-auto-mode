@@ -1,141 +1,18 @@
 # --------------------------------------------------------------------------
 # Five-layer tag propagation for EKS Auto Mode.
 #
-# Layers 1 and 2 (provider default_tags, EKS cluster_tags) live in main.tf
-# and eks.tf respectively. Layer 3 (NodeClass spec.tags) lives in setup.tf
-# and the nodepool-templates/. This file carries the remaining pieces:
+# Layer 1: provider default_tags (main.tf) — all TF-created resources
+# Layer 2: EKS cluster_tags (eks.tf) — EKS primary security group
+# Layer 3: NodeClass spec.tags (nodepool-templates/) — EC2/EBS/ENI from Auto Mode
+# Layer 4: StorageClass tagSpecification (below) — PVC-created EBS volumes
+# Layer 5: IngressClassParams (ingressclass.tf) — ALB/TG/Listener
 #
-#   - IAM policy permitting the cluster role to set var.tags on the AWS
-#     resources that EKS Auto Mode creates (load-bearing for L3 / L4 / L5).
-#   - StorageClass (Layer 4) so PVCs default to a class that tags the EBS
-#     volume at create time.
-#   - IngressClass + IngressClassParams (Layer 5) so Ingresses default to a
-#     class that tags the resulting ALB / TG / Listener.
+# The IAM policy enabling custom tags on Auto Mode resources (required for
+# Layers 3-5) is managed by the EKS module via enable_auto_mode_custom_tags
+# (default true since module v20.31). No manual IAM policy needed.
 #
-# See claude-md/TAGGING.md for the full pattern explanation, including the
-# explicit-override gaps these defaults do not cover (e.g. PVCs with
-# storageClassName: gp3, Ingresses with an ingressClassName override).
+# See claude-md/TAGGING.md for the full pattern explanation.
 # --------------------------------------------------------------------------
-
-
-# --------------------------------------------------------------------------
-# IAM: cluster role permission to set custom tags
-#
-# EKS Auto Mode's managed AmazonEKS*Policies gate ec2:RunInstances /
-# CreateFleet / CreateVolume / CreateNetworkInterface / CreateLoadBalancer
-# with a ForAllValues tag-key allowlist (eks:*, kubernetes.io/*, karpenter.*).
-# Custom tags from var.tags fall outside that allowlist so the managed Allow
-# does not match and the call is denied.
-#
-# This inline policy unions in the AWS-prescribed "Custom AWS tags for EKS
-# Auto resources" statements so the cluster role can create Auto-Mode
-# resources carrying var.tags.
-#
-# Source: https://docs.aws.amazon.com/eks/latest/userguide/auto-cluster-iam-role.html
-# --------------------------------------------------------------------------
-resource "aws_iam_role_policy" "eks_cluster_allow_custom_tags" {
-  name = "${module.eks.cluster_name}-allow-custom-tags"
-  role = module.eks.cluster_iam_role_name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "Compute"
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateFleet",
-          "ec2:RunInstances",
-          "ec2:CreateLaunchTemplate",
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-          StringLike = {
-            "aws:RequestTag/eks:kubernetes-node-class-name" = "*"
-            "aws:RequestTag/eks:kubernetes-node-pool-name"  = "*"
-          }
-        }
-      },
-      {
-        Sid    = "Storage"
-        Effect = "Allow"
-        Action = [
-          "ec2:CreateVolume",
-          "ec2:CreateSnapshot",
-        ]
-        Resource = [
-          "arn:aws:ec2:*:*:volume/*",
-          "arn:aws:ec2:*:*:snapshot/*",
-        ]
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-        }
-      },
-      {
-        Sid      = "Networking"
-        Effect   = "Allow"
-        Action   = "ec2:CreateNetworkInterface"
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-          StringLike = {
-            "aws:RequestTag/eks:kubernetes-cni-node-name" = "*"
-          }
-        }
-      },
-      {
-        Sid    = "LoadBalancer"
-        Effect = "Allow"
-        Action = [
-          "elasticloadbalancing:CreateLoadBalancer",
-          "elasticloadbalancing:CreateTargetGroup",
-          "elasticloadbalancing:CreateListener",
-          "elasticloadbalancing:CreateRule",
-          "ec2:CreateSecurityGroup",
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-        }
-      },
-      {
-        Sid    = "ShieldProtection"
-        Effect = "Allow"
-        Action = [
-          "shield:CreateProtection",
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-        }
-      },
-      {
-        Sid    = "ShieldTagResource"
-        Effect = "Allow"
-        Action = [
-          "shield:TagResource",
-        ]
-        Resource = "arn:aws:shield::*:protection/*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestTag/eks:eks-cluster-name" = "$${aws:PrincipalTag/eks:eks-cluster-name}"
-          }
-        }
-      },
-    ]
-  })
-}
 
 
 # --------------------------------------------------------------------------

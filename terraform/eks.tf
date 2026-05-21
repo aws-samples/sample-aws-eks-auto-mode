@@ -21,6 +21,10 @@ module "eks" {
     enabled    = true
     node_pools = ["general-purpose"]
   }
+
+  # Module handles the IAM policy for custom tags on Auto Mode resources (Layer 3 enabler)
+  enable_auto_mode_custom_tags = true
+
   cluster_tags = local.tags
   tags         = local.tags
 }
