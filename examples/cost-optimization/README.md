@@ -83,6 +83,15 @@ You can combine both — run pause pods on Spot capacity so your headroom is che
 
 ## Deploy
 
+Apply the required NodePools (Graviton for arm64, Spot for spot capacity):
+
+```bash
+kubectl apply -f ../../nodepools/graviton-nodepool.yaml
+kubectl apply -f ../../nodepools/spot-nodepool.yaml
+```
+
+Deploy the example workloads:
+
 ```bash
 kubectl apply -f mixed-od-spot-deployment.yaml
 kubectl apply -f overprovision-pause-pods.yaml
@@ -94,14 +103,21 @@ kubectl apply -f overprovision-pause-pods.yaml
 
 **For the OD/Spot split deployment:**
 
+Check that pods spread across capacity types:
+
 ```bash
-# Check that pods spread across capacity types
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o wide
+```
 
-# Verify nodes have different capacity types
+Verify nodes have different capacity types:
+
+```bash
 kubectl get nodes -L karpenter.sh/capacity-type
+```
 
-# Count pods per capacity type
+Count pods per capacity type:
+
+```bash
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o json | \
   jq -r '.items[].spec.nodeName' | \
   xargs -I{} kubectl get node {} -o jsonpath='{.metadata.labels.karpenter\.sh/capacity-type}' | \
@@ -110,17 +126,27 @@ kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o json | \
 
 **For overprovision/headroom:**
 
+Verify pause pods are running and holding resources:
+
 ```bash
-# Verify pause pods are running and holding resources
 kubectl get pods -n cost-optimization -l app=overprovision
+```
 
-# Check their priority class
+Check their priority class:
+
+```bash
 kubectl get pods -n cost-optimization -l app=overprovision -o jsonpath='{.items[0].spec.priorityClassName}'
+```
 
-# Watch preemption in action — scale a real workload and observe events
+Watch preemption in action — scale a real workload and observe events:
+
+```bash
 kubectl get events -n cost-optimization --field-selector reason=Preempted -w
+```
 
-# Measure scheduling latency (time from creation to running)
+Measure scheduling latency (time from creation to running):
+
+```bash
 kubectl get pods -n cost-optimization -o json | \
   jq '.items[] | select(.status.phase=="Running") | .metadata.name + ": " + (.status.conditions[] | select(.type=="PodScheduled") | .lastTransitionTime)'
 ```
@@ -129,4 +155,6 @@ kubectl get pods -n cost-optimization -o json | \
 
 ```bash
 kubectl delete -f .
+kubectl delete -f ../../nodepools/graviton-nodepool.yaml
+kubectl delete -f ../../nodepools/spot-nodepool.yaml
 ```
