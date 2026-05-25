@@ -2,6 +2,10 @@
 
 This example demonstrates two key cost optimization patterns: **OD/Spot mixed capacity** and **overprovision headroom via pause pods**.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ---
 
 ## Why OD/Spot Split Matters
@@ -80,8 +84,8 @@ You can combine both — run pause pods on Spot capacity so your headroom is che
 ## Deploy
 
 ```bash
-kubectl apply -f examples/cost-optimization/mixed-od-spot-deployment.yaml
-kubectl apply -f examples/cost-optimization/overprovision-pause-pods.yaml
+kubectl apply -f mixed-od-spot-deployment.yaml
+kubectl apply -f overprovision-pause-pods.yaml
 ```
 
 ---
@@ -119,4 +123,10 @@ kubectl get events -n cost-optimization --field-selector reason=Preempted -w
 # Measure scheduling latency (time from creation to running)
 kubectl get pods -n cost-optimization -o json | \
   jq '.items[] | select(.status.phase=="Running") | .metadata.name + ": " + (.status.conditions[] | select(.type=="PodScheduled") | .lastTransitionTime)'
+```
+
+## Clean up
+
+```bash
+kubectl delete -f .
 ```

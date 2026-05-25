@@ -6,6 +6,10 @@ Disruption budgets limit how many nodes EKS Auto Mode can voluntarily disrupt at
 
 They are defined in `spec.disruption.budgets[]` on a NodePool and act as a throttle on voluntary disruption velocity.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## Types of budgets
 
 ### Percentage-based
@@ -107,4 +111,10 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "blocked 
 
 # During maintenance window, verify drift remediation proceeds
 kubectl get nodes --sort-by=.metadata.creationTimestamp
+```
+
+## Clean up
+
+```bash
+kubectl delete -f .
 ```

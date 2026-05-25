@@ -6,6 +6,10 @@ Karpenter (and EKS Auto Mode) continuously consolidates underutilized nodes. Thi
 
 Without protection, consolidation treats your 8-hour training job the same as a stateless web server -- just another pod to reschedule.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## How `karpenter.sh/do-not-disrupt` works
 
 Adding this annotation to a pod's metadata tells Auto Mode: "do not voluntarily evict this pod for consolidation or drift remediation."
@@ -77,4 +81,10 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "$NODE"
 # Once the job completes, the annotation disappears with the pod.
 # The node becomes eligible for consolidation again.
 kubectl get nodes -w  # Watch the node get consolidated after job completion
+```
+
+## Clean up
+
+```bash
+kubectl delete -f .
 ```

@@ -1,11 +1,16 @@
 # GPU Workloads on EKS Auto Mode
 
 ## Table of Contents
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Implementation Steps](#implementation-steps)
-- [Cleanup](#cleanup)
+- [Clean up](#clean-up)
 - [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Overview
 [NVIDIA GPUs on Amazon EC2](https://aws.amazon.com/ec2/instance-types/#Accelerated_Computing) supercharge your workloads with powerful GPU acceleration. Key benefits include:
@@ -52,21 +57,11 @@ This example showcases GPU-accelerated workloads on EKS Auto Mode using the foll
 ### 1. Get Hugging Face Access Token
 Create a Hugging Face account and generate a FINEGRAINED [Access Token](https://huggingface.co/settings/tokens)
 
-### 2. Setup EKS Auto Mode Cluster
-Deploy the cluster using Terraform:
-```bash
-cd sample-aws-eks-auto-mode/terraform
-terraform init
-terraform apply -auto-approve
-$(terraform output -raw configure_kubectl)
-```
-
-### 3. Deploy GPU NodePool
+### 2. Deploy GPU NodePool
 Deploy the NodePool that will manage our GPU instances:
 
 ```bash
-cd ../nodepools
-kubectl apply -f gpu-nodepool.yaml
+kubectl apply -f ../../nodepools/gpu-nodepool.yaml
 ```
 
 > ⚠️ The GPU NodePool applies the following taint to ensure only GPU-compatible workloads are scheduled on these nodes:
@@ -80,11 +75,10 @@ kubectl apply -f gpu-nodepool.yaml
 >
 > Any pods that need to run on GPU nodes must include matching tolerations in their specifications.
 
-### 4. Configure Namespace and Secrets
+### 3. Configure Namespace and Secrets
 
 1. **Create Namespace**:
 ```bash
-cd ../examples/gpu
 kubectl apply -f namespace.yaml
 ```
 
@@ -96,7 +90,7 @@ kubectl create secret generic hf-secret \
   --from-literal=hf_api_token=<your_actual_hugging_face_token>
 ```
 
-### 5. Deploy Model and UI
+### 4. Deploy Model and UI
 
 1. **Deploy the Model**:
 Following command will deploy Qwen3 32b (fp8). We also have another manifest file that allows you to deploy [Deepseek](vllm-deepseek-gpu.yaml) instead.
@@ -121,7 +115,7 @@ kubectl apply -f model-qwen3-32b-fp8.yaml
 kubectl apply -f open-webui.yaml
 ```
 
-### 6. Deploy the Service and Ingress
+### 5. Deploy the Service and Ingress
 Apply the ClusterIP Service + ALB Ingress that front the Web UI:
 
 ```bash
@@ -130,7 +124,7 @@ kubectl apply -f lb-service.yaml
 
 > 📘 The manifest provisions a `ClusterIP` Service `open-webui-service` (port 80 → 8080) and an Ingress `open-webui-ingress` using the cluster-wide `alb` IngressClass. By default the ALB scheme is `internal` (VPC-only) — no public endpoint is created.
 
-### 7. Access the Application
+### 6. Access the Application
 
 By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
 
@@ -152,39 +146,15 @@ To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_
 > ⚠️ **Select a Model**: If you are unable to select a model, it means the model is still being downloaded and is not yet being served by our inferencing server pod. Just refresh until you see a model available.
 
 
-## Cleanup
-
-🧹 Follow these steps to clean up all resources:
-
-### 1. Remove Kubernetes Resources
-First, remove the application components and node pool:
+## Clean up
 
 ```bash
-# Remove application components
 kubectl delete -f lb-service.yaml
 kubectl delete -f open-webui.yaml
 kubectl delete -f model-qwen3-32b-fp8.yaml
 kubectl delete -f namespace.yaml
-
-# Remove GPU node pool
 kubectl delete -f ../../nodepools/gpu-nodepool.yaml
 ```
-
-### 2. Remove Cluster (Optional)
-If you're done with the entire cluster:
-
-```bash
-# Navigate to Terraform directory
-cd ../../terraform
-
-# Initialize and destroy infrastructure
-terraform init
-terraform destroy --auto-approve
-```
-
-> ⚠️ **Warning**: This will delete the entire EKS cluster and all associated resources. Make sure you want to proceed.
-
-> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
 
 ## Troubleshooting
 

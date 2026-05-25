@@ -6,6 +6,10 @@ On-Demand Capacity Reservations (ODCRs) let you reserve compute capacity in a sp
 
 ODCRs are not the same as Reserved Instances or Savings Plans. Those are billing constructs that apply discounts retroactively. An ODCR is a physical capacity guarantee: the hosts are allocated and waiting for you.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## Why This Matters for ML/GPU Workloads
 
 GPU instance families (p5, g6e, inf2, trn1) are frequently capacity-constrained in popular regions. You may submit a RunInstances call and receive an InsufficientInstanceCapacity error because the AZ is out of that type.
@@ -76,7 +80,7 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 | Compliance / dedicated tenancy | Some regulations require pre-allocated, non-shared capacity |
 | Event-driven spikes (launches, demos) | Reserve ahead, release after the event |
 
-## Prerequisites
+## ODCR Prerequisites
 
 1. **An existing ODCR** in the target AZ for the instance type you need.
    Create one via the EC2 console or CLI:
@@ -95,28 +99,22 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 
 ## Deploy
 
-1. Render the template with your cluster values:
-   ```
-   terraform output -raw odcr_nodepool_manifest > odcr-nodepool.yaml
-   ```
-   Or substitute the variables manually in `odcr-nodepool.yaml.tpl`.
+```bash
+kubectl apply -f odcr-nodepool.yaml
+```
 
-2. Apply to your cluster:
-   ```
-   kubectl apply -f odcr-nodepool.yaml
-   ```
+Launch a GPU workload that tolerates the `nvidia.com/gpu` taint:
 
-3. Launch a GPU workload that tolerates the `nvidia.com/gpu` taint:
-   ```yaml
-   tolerations:
-     - key: "nvidia.com/gpu"
-       operator: Equal
-       value: "true"
-       effect: NoSchedule
-   resources:
-     limits:
-       nvidia.com/gpu: 1
-   ```
+```yaml
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+resources:
+  limits:
+    nvidia.com/gpu: 1
+```
 
 ## What to Observe
 
@@ -134,10 +132,8 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 
 4. **Fallback scenario**: If you scale beyond the reservation size, additional nodes will launch as regular on-demand. The `CapacityReservationId` field will be empty on those instances.
 
-## Cleanup
+## Clean up
 
-To release ODCR capacity when no longer needed:
-
-1. Scale down or delete workloads using the GPU taint.
-2. Delete the NodePool and NodeClass: `kubectl delete nodepool odcr-gpu-nodepool && kubectl delete nodeclass odcr-gpu-nodeclass`
-3. Cancel the capacity reservation: `aws ec2 cancel-capacity-reservation --capacity-reservation-id cr-0a1b2c3d4e5f67890`
+```bash
+kubectl delete -f .
+```

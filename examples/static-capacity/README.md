@@ -4,6 +4,10 @@
 
 Setting `spec.replicas` on a NodePool tells EKS Auto Mode to maintain exactly N nodes at all times, regardless of pod demand. These nodes are never consolidated away when empty. They exist whether workloads are scheduled on them or not.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ```yaml
 spec:
   replicas: 2   # Always maintain exactly 2 nodes
@@ -54,10 +58,6 @@ If your workload can tolerate 60-90 seconds of scale-up time, a dynamic pool is 
 ## Deploy
 
 ```bash
-# Render the template (if using Terraform templatefile)
-terraform apply
-
-# Or apply directly after filling variables
 kubectl apply -f static-nodepool.yaml
 ```
 
@@ -77,4 +77,10 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep static
 kubectl scale nodepool static-gpu-nodepool --replicas=4
 # Watch a new node provision immediately (no pending pod required)
 kubectl get nodes -w -l karpenter.sh/nodepool=static-gpu-nodepool
+```
+
+## Clean up
+
+```bash
+kubectl delete -f .
 ```

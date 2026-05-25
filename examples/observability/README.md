@@ -2,6 +2,10 @@
 
 This guide explains how EKS Auto Mode integrates with Amazon CloudWatch Container Insights to provide full-stack observability for your cluster without managing any monitoring infrastructure yourself.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## What Container Insights Provides
 
 CloudWatch Container Insights delivers observability across three pillars:
@@ -118,14 +122,6 @@ You get service maps, latency histograms, error rates, and dependency graphs wit
 
 ---
 
-## Enable
-
-```bash
-terraform apply -var='enable_observability=true'
-```
-
-This creates the `amazon-cloudwatch-observability` EKS addon and attaches the `CloudWatchAgentServerPolicy` to the node IAM role.
-
 ## Verify
 
 Check that the CloudWatch agent pods are running:
@@ -151,18 +147,8 @@ Once deployed, explore these CloudWatch console paths:
 - **Application Signals:** `CloudWatch > Application Signals > Services`
 - **Metrics explorer:** `CloudWatch > Metrics > ContainerInsights`
 
-Direct console URL (also available as a Terraform output):
+Direct console URL:
 
 ```
 https://<region>.console.aws.amazon.com/cloudwatch/home?region=<region>#container-insights:infrastructure
 ```
-
-## Disable
-
-To remove the observability addon and stop incurring costs:
-
-```bash
-terraform apply -var='enable_observability=false'
-```
-
-This removes the addon and detaches the IAM policy. Existing logs and metrics in CloudWatch are retained according to their retention settings.
