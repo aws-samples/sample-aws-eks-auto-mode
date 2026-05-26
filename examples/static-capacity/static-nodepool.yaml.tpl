@@ -41,5 +41,3 @@ spec:
         - key: "nvidia.com/gpu"
           value: "true"
           effect: NoSchedule
-  limits:
-    cpu: 500
