@@ -20,19 +20,11 @@ spec:
         app: ml-training
     spec:
       restartPolicy: OnFailure
-      tolerations:
-        - key: "nvidia.com/gpu"
-          operator: "Equal"
-          value: "true"
-          effect: "NoSchedule"
       containers:
         - name: training
-          image: public.ecr.aws/nvidia/cuda:12.4.0-base-ubuntu22.04
-          command: ["sh", "-c", "echo 'Simulating 2-hour training job...' && sleep 7200"]
+          image: public.ecr.aws/docker/library/busybox:latest
+          command: ["sh", "-c", "echo 'Simulating long-running batch job...' && sleep 7200"]
           resources:
             requests:
-              cpu: "4"
-              memory: 16Gi
-              nvidia.com/gpu: "1"
-            limits:
-              nvidia.com/gpu: "1"
+              cpu: "1"
+              memory: 1Gi

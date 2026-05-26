@@ -54,13 +54,7 @@ A GPU taint prevents CPU pods from landing on GPU nodes. `do-not-disrupt` preven
 
 ## Deploy
 
-Apply the GPU NodePool (required -- the training job tolerates `nvidia.com/gpu` and requests a GPU):
-
-```bash
-kubectl apply -f ../../nodepools/gpu-nodepool.yaml
-```
-
-Deploy the batch training job:
+Deploy the batch job:
 
 ```bash
 kubectl apply -f batch-training-job.yaml
@@ -81,25 +75,19 @@ Confirm the annotation is on the running pod:
 kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].metadata.annotations}'
 ```
 
-Watch Karpenter logs for "cannot disrupt" messages on the protected node:
-
-```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "cannot disrupt\|do-not-disrupt"
-```
-
 Identify which node the job landed on:
 
 ```bash
 NODE=$(kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].spec.nodeName}') && echo "Protected node: $NODE"
 ```
 
-Verify that node is NOT being considered for consolidation:
+Verify the node exists and is not being drained (it will persist as long as the annotated pod runs):
 
 ```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "$NODE"
+kubectl get node $NODE
 ```
 
-Once the job completes the annotation disappears with the pod and the node becomes eligible for consolidation again. Watch node lifecycle:
+Once the job completes, the annotation disappears with the pod and the node becomes eligible for consolidation again. Watch node lifecycle:
 
 ```bash
 kubectl get nodes -w
@@ -109,5 +97,4 @@ kubectl get nodes -w
 
 ```bash
 kubectl delete -f batch-training-job.yaml
-kubectl delete -f ../../nodepools/gpu-nodepool.yaml
 ```
