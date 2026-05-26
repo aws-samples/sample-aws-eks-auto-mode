@@ -14,7 +14,7 @@ function Hero() {
           Deploy once, explore everything.
         </p>
         <p className="landing-hero__seo-description" style={{fontSize: '1rem', opacity: 0.85, maxWidth: '600px', margin: '0 auto 1.5rem'}}>
-          Automate Kubernetes compute, storage, and networking on AWS. Production-ready patterns for GPU, Spot, Graviton, cost optimization, capacity reservations, and more. No add-on management required.
+          Automate Kubernetes compute, storage, and networking on AWS. Deployable patterns for GPU, Spot, Graviton, cost optimization, capacity reservations, and more. Minimal add-on management. Auto Mode handles core compute, storage, and networking add-ons for you.
         </p>
         <div className="landing-hero__actions">
           <Link className="landing-hero__btn landing-hero__btn--primary" to="/docs/getting-started">

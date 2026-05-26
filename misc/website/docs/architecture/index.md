@@ -1,8 +1,8 @@
 ---
 sidebar_position: 5
 title: Architecture
-description: "EKS Auto Mode architecture deep-dives — tagging strategies, cleanup playbooks, and security considerations for production Kubernetes on AWS."
-keywords: [EKS Auto Mode architecture, eks production, kubernetes architecture AWS, EKS best practices]
+description: "EKS Auto Mode architecture deep-dives — tagging strategies, cleanup playbooks, and security considerations for Kubernetes on AWS."
+keywords: [EKS Auto Mode architecture, kubernetes architecture AWS, EKS best practices, EKS tagging]
 ---
 
 # Architecture
