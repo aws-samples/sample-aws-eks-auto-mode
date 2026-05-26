@@ -11,12 +11,12 @@
 ## Table of Contents
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
+- [Claude Code Skills (Plugin)](#claude-code-skills-plugin)
 - [Quick Start](#quick-start)
 - [Examples](#examples)
 - [Cleanup](#cleanup)
 - [Configuration](#configuration)
 - [Components](#components)
-- [Claude Code Skills](#claude-code-skills-plugin)
 - [Learn More](#learn-more)
 - [Contributing](#contributing)
 - [License and Disclaimer](#license-and-disclaimer)
@@ -47,6 +47,30 @@ This repository is an educational companion. Each example demonstrates a specifi
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 
 > **Note**: This project currently provides Linux-specific commands in the examples. Windows compatibility will be added in future updates.
+
+## Claude Code Skills (Plugin)
+
+This repo ships as a [Claude Code](https://claude.ai/code) plugin with two AI-assisted skills for EKS Auto Mode:
+
+| Skill | Audience | What it covers |
+|-------|----------|----------------|
+| `eks-automode-onboard` | Newcomers | Concepts, deployment, example selection, troubleshooting |
+| `eks-automode-maintain` | Repo maintainers | Rendering chain, 5-layer tagging, docs sync, PR checklist |
+
+### Install
+
+```bash
+/plugin marketplace add https://github.com/aws-samples/sample-aws-eks-auto-mode.git
+/plugin install eks-automode@sample-aws-eks-auto-mode
+```
+
+### Alternative: manual install
+
+```bash
+git clone https://github.com/aws-samples/sample-aws-eks-auto-mode.git
+cp -r sample-aws-eks-auto-mode/skills/eks-automode-onboard ~/.claude/skills/
+cp -r sample-aws-eks-auto-mode/skills/eks-automode-maintain ~/.claude/skills/
+```
 
 ## Quick Start
 
@@ -254,36 +278,6 @@ EKS Auto Mode includes the EBS CSI driver as a managed component. No installatio
 - Custom KMS encryption may require additional IAM permissions.
 
 [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html)
-
-## Claude Code Skills (Plugin)
-
-This repo ships as a Claude Code plugin with two skills for EKS Auto Mode:
-
-| Skill | Audience | What it covers |
-|-------|----------|----------------|
-| `eks-automode-onboard` | Newcomers | Concepts, deployment, example selection, troubleshooting |
-| `eks-automode-maintain` | Repo maintainers | Rendering chain, 5-layer tagging, docs sync, PR checklist |
-
-### Install via plugin marketplace
-
-```bash
-/plugin marketplace add aws-samples/sample-aws-eks-auto-mode
-/plugin install eks-automode@sample-aws-eks-auto-mode
-```
-
-### Alternative: manual install
-
-```bash
-git clone https://github.com/aws-samples/sample-aws-eks-auto-mode.git
-cp -r sample-aws-eks-auto-mode/skills/eks-automode-onboard ~/.claude/skills/
-cp -r sample-aws-eks-auto-mode/skills/eks-automode-maintain ~/.claude/skills/
-```
-
-### Local testing (from repo root)
-
-```bash
-claude --plugin-dir .
-```
 
 ## Learn More
 
