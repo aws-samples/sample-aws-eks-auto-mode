@@ -19,7 +19,7 @@ This repository ships as a [Claude Code](https://claude.ai/code) plugin with two
 The fastest path. Run these two commands inside Claude Code:
 
 ```bash
-/plugin marketplace add aws-samples/sample-aws-eks-auto-mode
+/plugin marketplace add https://github.com/aws-samples/sample-aws-eks-auto-mode.git
 /plugin install eks-automode@sample-aws-eks-auto-mode
 ```
 
