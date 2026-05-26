@@ -1,6 +1,8 @@
 ---
 sidebar_position: 11
 title: Pod Autoscaling on EKS Auto Mode
+description: "Pod autoscaling on EKS Auto Mode — configure HPA and KEDA for automatic workload scaling with Kubernetes metrics and event-driven triggers."
+keywords: [EKS autoscaling, HPA EKS, KEDA kubernetes, pod autoscaling, scale kubernetes workloads, eks auto mode scaling]
 ---
 
 # Pod Autoscaling on EKS Auto Mode

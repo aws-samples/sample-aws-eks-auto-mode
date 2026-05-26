@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: Examples
+description: "Deployable EKS Auto Mode examples — GPU, Graviton, Spot, cost optimization, ODCR capacity reservations, disruption budgets, batch jobs, and observability patterns."
+keywords: [EKS Auto Mode examples, eks automode patterns, kubernetes examples, EKS terraform examples, automate EKS workloads]
 ---
 
 # Examples

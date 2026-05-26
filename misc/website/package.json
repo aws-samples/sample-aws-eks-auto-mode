@@ -2,6 +2,14 @@
   "name": "sample-aws-eks-auto-mode-website",
   "version": "0.0.0",
   "private": true,
+  "description": "Documentation site for EKS Auto Mode Samples — learn Amazon EKS Auto Mode through deployable Terraform examples for GPU, Spot, Graviton, cost optimization, and Kubernetes automation",
+  "keywords": ["eks", "eks-auto-mode", "automode", "kubernetes", "terraform", "aws", "karpenter", "gpu", "spot", "graviton", "cost-optimization", "nodepool", "nodeclass"],
+  "homepage": "https://aws-samples.github.io/sample-aws-eks-auto-mode/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aws-samples/sample-aws-eks-auto-mode.git",
+    "directory": "misc/website"
+  },
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 12
 title: Observability with CloudWatch Container Insights
+description: "EKS Auto Mode observability with CloudWatch Container Insights — monitor Kubernetes clusters, nodes, and pods without managing monitoring infrastructure."
+keywords: [EKS observability, CloudWatch Container Insights, monitor EKS, kubernetes monitoring, eks auto mode metrics]
 ---
 
 # Observability with CloudWatch Container Insights

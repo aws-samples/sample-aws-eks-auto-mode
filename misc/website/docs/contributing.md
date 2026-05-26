@@ -1,6 +1,8 @@
 ---
 sidebar_position: 10
 title: Contributing
+description: "Contribute to EKS Auto Mode Samples — guidelines for adding examples, documentation standards, and pull request workflow."
+keywords: [contribute EKS samples, open source kubernetes, AWS samples contributing]
 ---
 
 # Contributing

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#232F3E"/>
+  <text x="600" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="#FFFFFF" text-anchor="middle">EKS Auto Mode</text>
+  <text x="600" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="36" fill="#FF9900" text-anchor="middle">Deployable Terraform Examples</text>
+  <text x="600" y="540" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#8899AA" text-anchor="middle">aws-samples</text>
+</svg>

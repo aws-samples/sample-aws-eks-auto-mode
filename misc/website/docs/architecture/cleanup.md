@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Cleanup Playbook
+description: "EKS Auto Mode cleanup playbook — safely destroy clusters without orphaning EBS volumes, ALBs, ENIs, and security groups. 14-category post-destroy sweep."
+keywords: [EKS cleanup, destroy EKS cluster, orphaned resources EKS, eks terraform destroy, clean up kubernetes]
 ---
 
 # EKS Auto Mode — Cleanup Playbook

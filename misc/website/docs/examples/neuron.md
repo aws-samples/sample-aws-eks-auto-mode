@@ -1,6 +1,8 @@
 ---
 sidebar_position: 4
 title: Neuron Workloads on EKS Auto Mode
+description: "Run AWS Inferentia and Trainium workloads on EKS Auto Mode — Neuron NodePool configuration for ML inference and training with inf2 and trn1 instances."
+keywords: [EKS Neuron, eks auto mode inferentia, trainium kubernetes, AWS Inferentia EKS, ML inference EKS]
 ---
 
 # Neuron Workloads on EKS Auto Mode

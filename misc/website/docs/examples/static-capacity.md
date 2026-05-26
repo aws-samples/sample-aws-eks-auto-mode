@@ -1,6 +1,8 @@
 ---
 sidebar_position: 8
 title: Static Capacity Pools
+description: "Static capacity pools in EKS Auto Mode — maintain fixed node counts with NodePool replicas for always-on workloads that need guaranteed compute."
+keywords: [EKS static capacity, nodepool replicas, fixed nodes kubernetes, always-on EKS, guaranteed compute EKS]
 ---
 
 # Static Capacity Pools

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: GPU Workloads on EKS Auto Mode
+description: "Run GPU workloads on EKS Auto Mode — NVIDIA GPU NodePool configuration, ML inference, and AI/ML training on Kubernetes with p4d, p5, g5, and g6 instances."
+keywords: [EKS GPU, eks auto mode gpu, GPU kubernetes, ML on EKS, NVIDIA EKS, AI kubernetes]
 ---
 
 # GPU Workloads on EKS Auto Mode

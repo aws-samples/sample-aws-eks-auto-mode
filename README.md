@@ -1,5 +1,13 @@
 # Setting up EKS Auto Mode using Terraform
 
+[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-yellow.svg)](https://opensource.org/licenses/MIT-0)
+[![EKS](https://img.shields.io/badge/EKS-Auto%20Mode-FF9900?logo=amazoneks)](https://aws.amazon.com/eks/auto-mode/)
+[![Terraform](https://img.shields.io/badge/Terraform-%3E%3D1.5-844FBA?logo=terraform)](https://www.terraform.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.34-326CE5?logo=kubernetes)](https://kubernetes.io/)
+[![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://aws-samples.github.io/sample-aws-eks-auto-mode/)
+
+> **Automate Kubernetes the easy way** — deploy once, explore GPU, Spot, Graviton, cost optimization, ODCR, disruption budgets, observability, and more. No add-on management required.
+
 ## Table of Contents
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
