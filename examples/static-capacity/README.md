@@ -55,26 +55,30 @@ If your workload can tolerate 60-90 seconds of scale-up time, a dynamic pool is 
 
 ## Deploy
 
+> **Cost warning:** This example provisions GPU instances (`g6e` family) which are billed per-second while running. Nodes will launch immediately upon apply and persist until you clean up. Estimated cost: ~$1.50/hr per node.
+
 ```bash
 kubectl apply -f static-nodepool.yaml
 ```
 
 ## What to observe
 
+Verify exactly 2 nodes exist for this pool (even with zero pods):
+
 ```bash
-# Verify exactly 2 nodes exist for this pool (even with zero pods)
 kubectl get nodes -l karpenter.sh/nodepool=static-gpu-nodepool
+```
 
-# Confirm replicas are set
+Confirm replicas are set:
+
+```bash
 kubectl get nodepool static-gpu-nodepool -o jsonpath='{.spec.replicas}'
+```
 
-# Watch that consolidation does NOT touch these nodes
+Watch that consolidation does NOT touch these nodes:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep static-gpu
-
-# Scale up to 4 nodes
-kubectl patch nodepool static-gpu-nodepool --type=merge -p '{"spec":{"replicas":4}}'
-# Watch new nodes provision immediately (no pending pod required)
-kubectl get nodes -w -l karpenter.sh/nodepool=static-gpu-nodepool
 ```
 
 ## Clean up
