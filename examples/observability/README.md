@@ -86,7 +86,9 @@ CloudWatch Container Insights is metered. Key cost drivers:
 Set log retention via AWS CLI after deployment:
 
 ```bash
-aws logs put-retention-policy --log-group-name /aws/containerinsights/<cluster>/application --retention-in-days 30
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws logs put-retention-policy --log-group-name /aws/containerinsights/$CLUSTER/application --retention-in-days 30 --region $REGION
 ```
 
 ## Application Signals (Distributed Tracing)
@@ -144,13 +146,16 @@ Expected output shows `amazon-cloudwatch-observability-controller-manager` and `
 Confirm metrics are flowing:
 
 ```bash
-aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=<cluster-name> --region <region>
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=$CLUSTER --region $REGION
 ```
 
 Check log groups were created:
 
 ```bash
-aws logs describe-log-groups --log-group-name-prefix /aws/containerinsights/ --region <region>
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws logs describe-log-groups --log-group-name-prefix /aws/containerinsights/ --region $REGION
 ```
 
 Once deployed, explore these CloudWatch console paths:
