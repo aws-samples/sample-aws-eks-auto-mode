@@ -1,6 +1,8 @@
 ---
 sidebar_position: 5
 title: Cost Optimization Patterns for EKS Auto Mode
+description: "EKS Auto Mode cost optimization — OD/Spot mixed scheduling, pause-pod overprovision headroom, and topology spread for cost-efficient Kubernetes clusters."
+keywords: [EKS cost optimization, eks auto mode cost, reduce kubernetes costs, spot on-demand mix, overprovision EKS]
 ---
 
 # Cost Optimization Patterns for EKS Auto Mode

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 3
 title: Security Considerations
+description: "EKS Auto Mode security considerations — Checkov scan results, security trade-offs, and hardening guidance for Kubernetes on AWS."
+keywords: [EKS security, eks auto mode security, kubernetes security AWS, Checkov EKS, harden kubernetes]
 ---
 
 # Security Considerations

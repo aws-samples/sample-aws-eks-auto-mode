@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: 5-Layer Tagging
+description: "5-layer resource tagging for EKS Auto Mode — tag EC2 instances, EBS volumes, ENIs, ALBs, and security groups created by Kubernetes controllers for full cost allocation."
+keywords: [EKS tagging, eks auto mode tags, kubernetes resource tagging, AWS cost allocation tags, tag EKS nodes]
 ---
 
 # EKS Auto Mode — 5-Layer Tagging

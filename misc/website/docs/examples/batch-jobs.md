@@ -1,6 +1,8 @@
 ---
 sidebar_position: 9
 title: "Batch Jobs: Protecting Long-Running Workloads from Disruption"
+description: "Protect batch jobs from disruption on EKS Auto Mode — use do-not-disrupt annotations to prevent Karpenter consolidation during long-running ML training and ETL pipelines."
+keywords: [EKS batch jobs, do-not-disrupt, protect kubernetes jobs, ML training EKS, long-running jobs EKS]
 ---
 
 # Batch Jobs: Protecting Long-Running Workloads from Disruption

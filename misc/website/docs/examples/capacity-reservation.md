@@ -1,6 +1,8 @@
 ---
 sidebar_position: 7
 title: On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode
+description: "Target On-Demand Capacity Reservations (ODCR) with EKS Auto Mode — guarantee instance availability for critical workloads using NodeClass capacityReservationSelectorTerms."
+keywords: [EKS ODCR, capacity reservation EKS, eks auto mode ODCR, guaranteed capacity kubernetes, reserved instances EKS]
 ---
 
 # On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode

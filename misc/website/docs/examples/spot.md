@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Spot Workloads on EKS Auto Mode
+description: "Run Spot instances on EKS Auto Mode — configure NodePools for Spot capacity, handle interruptions gracefully, and reduce Kubernetes compute costs by up to 90%."
+keywords: [EKS Spot instances, eks auto mode spot, spot kubernetes, reduce EKS costs, spot nodepool]
 ---
 
 # Spot Workloads on EKS Auto Mode

@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Introduction
+description: "Introduction to EKS Auto Mode Samples — learn how to automate Kubernetes compute, storage, and networking with deployable Terraform examples. Simplify EKS operations without managing add-ons."
+keywords: [EKS Auto Mode, eks automode, automate kubernetes, simplify EKS, terraform examples, managed kubernetes]
 ---
 
 # EKS Auto Mode Samples

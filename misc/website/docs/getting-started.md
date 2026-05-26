@@ -1,6 +1,8 @@
 ---
 sidebar_position: 2
 title: Getting Started
+description: "Get started with EKS Auto Mode — deploy an automated Kubernetes cluster in minutes using Terraform. Step-by-step setup guide for AWS EKS Auto Mode."
+keywords: [EKS Auto Mode setup, eks auto mode terraform, getting started EKS, deploy EKS cluster, kubernetes quickstart]
 ---
 
 # Getting Started

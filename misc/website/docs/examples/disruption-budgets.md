@@ -1,6 +1,8 @@
 ---
 sidebar_position: 10
 title: Disruption Budgets
+description: "EKS Auto Mode disruption budgets — control node consolidation with time-windowed budgets, business-hours protection, and reason-specific disruption limits."
+keywords: [EKS disruption budgets, nodepool budget, kubernetes node consolidation, business hours protection, EKS availability]
 ---
 
 # Disruption Budgets

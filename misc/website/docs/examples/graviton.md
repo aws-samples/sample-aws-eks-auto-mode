@@ -1,6 +1,8 @@
 ---
 sidebar_position: 1
 title: Graviton Workloads on EKS Auto Mode
+description: "Run ARM64 Graviton workloads on EKS Auto Mode — NodePool configuration, multi-arch builds, and cost-performance optimization for Kubernetes on AWS Graviton."
+keywords: [EKS Graviton, eks auto mode graviton, ARM64 kubernetes, graviton nodepool, aws graviton eks]
 ---
 
 # Graviton Workloads on EKS Auto Mode
