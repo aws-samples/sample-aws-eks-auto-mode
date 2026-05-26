@@ -26,6 +26,10 @@ spec:
             matchLabels:
               app: web-mixed-capacity
       tolerations:
+        - key: "arm64"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
         - key: "spot"
           operator: "Equal"
           value: "true"

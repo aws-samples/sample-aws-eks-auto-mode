@@ -119,8 +119,8 @@ Count pods per capacity type:
 
 ```bash
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o json | \
-  jq -r '.items[].spec.nodeName' | \
-  xargs -I{} kubectl get node {} -o jsonpath='{.metadata.labels.karpenter\.sh/capacity-type}' | \
+  jq -r '.items[].spec.nodeName' | sort -u | \
+  while read node; do kubectl get node "$node" -o jsonpath="{.metadata.labels.karpenter\.sh/capacity-type}"; echo; done | \
   sort | uniq -c
 ```
 
