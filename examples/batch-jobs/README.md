@@ -54,37 +54,60 @@ A GPU taint prevents CPU pods from landing on GPU nodes. `do-not-disrupt` preven
 
 ## Deploy
 
+Apply the GPU NodePool (required -- the training job tolerates `nvidia.com/gpu` and requests a GPU):
+
+```bash
+kubectl apply -f ../../nodepools/gpu-nodepool.yaml
+```
+
+Deploy the batch training job:
+
 ```bash
 kubectl apply -f batch-training-job.yaml
+```
 
-# Verify the job is running
+Verify the job is running:
+
+```bash
 kubectl get jobs -n batch-jobs
 kubectl get pods -n batch-jobs -o wide
 ```
 
 ## What to observe
 
+Confirm the annotation is on the running pod:
+
 ```bash
-# Confirm the annotation is on the running pod
 kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].metadata.annotations}'
+```
 
-# Watch karpenter logs -- you should see "cannot disrupt" messages for this node
+Watch Karpenter logs for "cannot disrupt" messages on the protected node:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "cannot disrupt\|do-not-disrupt"
+```
 
-# Identify which node the job landed on
-NODE=$(kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].spec.nodeName}')
-echo "Protected node: $NODE"
+Identify which node the job landed on:
 
-# Verify that node is NOT being considered for consolidation
+```bash
+NODE=$(kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].spec.nodeName}') && echo "Protected node: $NODE"
+```
+
+Verify that node is NOT being considered for consolidation:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "$NODE"
+```
 
-# Once the job completes, the annotation disappears with the pod.
-# The node becomes eligible for consolidation again.
-kubectl get nodes -w  # Watch the node get consolidated after job completion
+Once the job completes the annotation disappears with the pod and the node becomes eligible for consolidation again. Watch node lifecycle:
+
+```bash
+kubectl get nodes -w
 ```
 
 ## Clean up
 
 ```bash
-kubectl delete -f .
+kubectl delete -f batch-training-job.yaml
+kubectl delete -f ../../nodepools/gpu-nodepool.yaml
 ```

@@ -99,6 +99,8 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 
 ## Deploy
 
+Apply the ODCR NodePool and NodeClass (rendered from `odcr-nodepool.yaml.tpl` during infrastructure provisioning):
+
 ```bash
 kubectl apply -f odcr-nodepool.yaml
 ```
@@ -118,22 +120,30 @@ resources:
 
 ## What to Observe
 
-1. **EC2 Console > Capacity Reservations**: Watch `Used instance count` increase as Auto Mode launches nodes into the reservation.
+Check the EC2 console Capacity Reservations page and watch `Used instance count` increase as Auto Mode launches nodes into the reservation.
 
-2. **Node labels**: Nodes launched into an ODCR carry standard EC2 metadata. Check instance details:
-   ```
-   aws ec2 describe-instances --instance-ids <id> --query 'Reservations[].Instances[].CapacityReservationId'
-   ```
+Verify an instance landed on the ODCR:
 
-3. **NodePool counters**: Verify the NodePool's resource usage is increasing:
-   ```
-   kubectl get nodepool odcr-gpu-nodepool -o yaml | grep -A5 status
-   ```
+```bash
+aws ec2 describe-instances --instance-ids <id> --query 'Reservations[].Instances[].CapacityReservationId'
+```
 
-4. **Fallback scenario**: If you scale beyond the reservation size, additional nodes will launch as regular on-demand. The `CapacityReservationId` field will be empty on those instances.
+Check the NodePool resource usage is increasing:
+
+```bash
+kubectl get nodepool odcr-gpu-nodepool -o yaml | grep -A5 status
+```
+
+List nodes provisioned by the NodePool:
+
+```bash
+kubectl get nodes -l karpenter.sh/nodepool=odcr-gpu-nodepool
+```
+
+If you scale beyond the reservation size, additional nodes launch as regular on-demand. The `CapacityReservationId` field will be empty on those overflow instances.
 
 ## Clean up
 
 ```bash
-kubectl delete -f .
+kubectl delete -f odcr-nodepool.yaml
 ```

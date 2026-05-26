@@ -92,29 +92,42 @@ If no `schedule` and `duration` are set, the budget is always active.
 
 ```bash
 kubectl apply -f advanced-budgets-nodepool.yaml
+```
 
-# Verify the disruption policy
+Verify the disruption policy:
+
+```bash
 kubectl get nodepool production-nodepool -o yaml | grep -A 30 disruption
 ```
 
 ## What to observe
 
+Check current disruption budget state:
+
 ```bash
-# Check current disruption budget state
 kubectl get nodepool production-nodepool -o jsonpath='{.status.disruption}'
+```
 
-# Watch karpenter logs for budget enforcement
+Watch karpenter logs for budget enforcement:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "budget\|disruption"
+```
 
-# During business hours, verify no consolidation occurs
+During business hours, verify no consolidation occurs:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "blocked by budget"
+```
 
-# During maintenance window, verify drift remediation proceeds
+During maintenance window, verify drift remediation proceeds:
+
+```bash
 kubectl get nodes --sort-by=.metadata.creationTimestamp
 ```
 
 ## Clean up
 
 ```bash
-kubectl delete -f .
+kubectl delete -f advanced-budgets-nodepool.yaml
 ```

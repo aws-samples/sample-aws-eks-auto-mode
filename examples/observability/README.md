@@ -4,7 +4,16 @@ This guide explains how EKS Auto Mode integrates with Amazon CloudWatch Containe
 
 ## Prerequisites
 
-Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+- Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+- Terraform installed and AWS credentials configured.
+
+## Deploy
+
+Enable the observability addon by running terraform with the `enable_observability` variable from the `terraform/` directory:
+
+```bash
+terraform apply -var="enable_observability=true"
+```
 
 ## What Container Insights Provides
 
@@ -122,9 +131,9 @@ You get service maps, latency histograms, error rates, and dependency graphs wit
 
 ---
 
-## Verify
+## What to Observe
 
-Check that the CloudWatch agent pods are running:
+Verify the CloudWatch agent pods are running:
 
 ```bash
 kubectl get pods -n amazon-cloudwatch
@@ -138,7 +147,11 @@ Confirm metrics are flowing:
 aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=<cluster-name> --region <region>
 ```
 
-## Explore
+Check log groups were created:
+
+```bash
+aws logs describe-log-groups --log-group-name-prefix /aws/containerinsights/ --region <region>
+```
 
 Once deployed, explore these CloudWatch console paths:
 
@@ -152,3 +165,13 @@ Direct console URL:
 ```
 https://<region>.console.aws.amazon.com/cloudwatch/home?region=<region>#container-insights:infrastructure
 ```
+
+## Clean Up
+
+Disable the observability addon by setting the variable to false:
+
+```bash
+terraform apply -var="enable_observability=false"
+```
+
+This removes the CloudWatch agent DaemonSet and controller but does not delete existing log groups or metrics already stored in CloudWatch.
