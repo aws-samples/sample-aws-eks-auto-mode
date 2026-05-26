@@ -114,12 +114,6 @@ Check the NodePool status (shows active budget conditions when nodes exist):
 kubectl describe nodepool production-nodepool | grep -A5 "Status"
 ```
 
-List nodes managed by this pool (if workloads are scheduled):
-
-```bash
-kubectl get nodes -l karpenter.sh/nodepool=production-nodepool --sort-by=.metadata.creationTimestamp
-```
-
 ## Clean up
 
 ```bash
