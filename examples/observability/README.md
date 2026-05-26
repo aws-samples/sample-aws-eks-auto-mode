@@ -9,10 +9,10 @@ This guide explains how EKS Auto Mode integrates with Amazon CloudWatch Containe
 
 ## Deploy
 
-Enable the observability addon by running terraform with the `enable_observability` variable from the `terraform/` directory:
+Enable the observability addon:
 
 ```bash
-terraform apply -var="enable_observability=true"
+terraform -chdir=../../terraform apply -var="enable_observability=true"
 ```
 
 ## What Container Insights Provides
@@ -168,10 +168,10 @@ https://<region>.console.aws.amazon.com/cloudwatch/home?region=<region>#containe
 
 ## Clean Up
 
-Disable the observability addon by setting the variable to false:
+Disable the observability addon:
 
 ```bash
-terraform apply -var="enable_observability=false"
+terraform -chdir=../../terraform apply -var="enable_observability=false"
 ```
 
 This removes the CloudWatch agent DaemonSet and controller but does not delete existing log groups or metrics already stored in CloudWatch.
