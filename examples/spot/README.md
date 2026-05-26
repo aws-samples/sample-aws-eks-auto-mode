@@ -7,6 +7,10 @@
 - [Cleanup](#cleanup)
 - [Troubleshooting](#troubleshooting)
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## Overview
 [Amazon EC2 Spot Instances](https://aws.amazon.com/ec2/spot/) let you take advantage of unused EC2 capacity at steep discounts. Key benefits include:
 
@@ -45,25 +49,11 @@ This example demonstrates how to run workloads on Spot instances in EKS Auto Mod
 
 ## Implementation Steps
 
-### 1. Setup EKS Auto Mode Cluster
-First, we'll set up our EKS cluster using Terraform:
-
-```bash
-cd sample-aws-eks-auto-mode/terraform
-
-terraform init
-terraform apply -auto-approve
-
-$(terraform output -raw configure_kubectl)
-```
-
-### 2. Deploy Spot NodePool
+### 1. Deploy Spot NodePool
 Deploy the NodePool that will manage our Spot instances:
 
 ```bash
-cd ../nodepools
-
-kubectl apply -f spot-nodepool.yaml
+kubectl apply -f ../../nodepools/spot-nodepool.yaml
 ```
 
 > ⚠️ The Spot NodePool applies the following taint to ensure workloads are spot-aware:
@@ -77,12 +67,10 @@ kubectl apply -f spot-nodepool.yaml
 >
 > Any pods that need to run on Spot nodes must include matching tolerations in their specifications. This ensures workloads are designed to handle spot instance interruptions.
 
-### 3. Deploy the 2048 Game
+### 2. Deploy the 2048 Game
 Deploy our spot-compatible 2048 game application:
 
 ```bash
-cd ../examples/spot
-
 kubectl apply -f game-2048.yaml
 ```
 
@@ -100,14 +88,14 @@ kubectl apply -f game-2048.yaml
 >
 > This configuration ensures the pods can run on Spot instances and are scheduled appropriately.
 
-### 4. Configure Load Balancer
+### 3. Configure Load Balancer
 Set up the Application Load Balancer using Ingress:
 
 ```bash
 kubectl apply -f 2048-ingress.yaml
 ```
 
-### 5. Access the Application
+### 4. Access the Application
 
 By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
 
@@ -130,33 +118,13 @@ To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_
 
 🧹 Follow these steps to clean up all resources:
 
-### 1. Remove Kubernetes Resources
-First, remove the application and node pool:
+Remove the application and node pool:
 
 ```bash
-# Remove application components
 kubectl delete -f 2048-ingress.yaml
 kubectl delete -f game-2048.yaml
-
-# Remove Spot node pool
 kubectl delete -f ../../nodepools/spot-nodepool.yaml
 ```
-
-### 2. Remove Cluster (Optional)
-If you're done with the entire cluster:
-
-```bash
-# Navigate to Terraform directory
-cd ../../terraform
-
-# Initialize and destroy infrastructure
-terraform init
-terraform destroy --auto-approve
-```
-
-> ⚠️ **Warning**: This will delete the entire EKS cluster and all associated resources. Make sure you want to proceed.
-
-> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
 
 ## Troubleshooting
 

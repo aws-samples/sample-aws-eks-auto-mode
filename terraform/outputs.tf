@@ -22,3 +22,8 @@ output "name" {
   description = "Cluster name variable"
   value       = var.name
 }
+
+output "cloudwatch_dashboard_url" {
+  description = "CloudWatch Container Insights URL (only when observability is enabled)"
+  value       = var.enable_observability ? "https://${var.region}.console.aws.amazon.com/cloudwatch/home?region=${var.region}#container-insights:infrastructure" : null
+}

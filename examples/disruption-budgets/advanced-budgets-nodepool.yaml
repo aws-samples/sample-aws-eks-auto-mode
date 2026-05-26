@@ -1,0 +1,44 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: production-nodepool
+spec:
+  template:
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: default
+      requirements:
+        - key: "eks.amazonaws.com/instance-category"
+          operator: In
+          values: ["c", "m", "r"]
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["arm64"]
+      taints:
+        - key: "arm64"
+          value: "true"
+          effect: "NoSchedule"
+  limits:
+    cpu: 1000
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 120s
+    budgets:
+      # Baseline: never disrupt more than 10% of nodes at once
+      - nodes: "10%"
+      # Business hours (Mon-Fri 09:00-17:00 UTC): block all voluntary disruption
+      # except for empty nodes (cost savings still apply)
+      - nodes: "0"
+        schedule: "0 9 * * 1-5"
+        duration: 8h
+        reasons:
+          - Drifted
+          - Underutilized
+      # Weekend maintenance window: allow up to 33% disruption for drift remediation
+      - nodes: "33%"
+        schedule: "0 2 * * 6"
+        duration: 4h
+        reasons:
+          - Drifted

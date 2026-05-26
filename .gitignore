@@ -54,3 +54,8 @@ examples/pod-autoscaling/keda/vllm-qwen3/model-qwen3-4b-fp8-with-sqs.yaml
 # Claude Generated Artifacts for Management of Repo
 PLAN.md
 claude-md/
+
+# Docusaurus
+misc/website/node_modules/
+misc/website/build/
+misc/website/.docusaurus/

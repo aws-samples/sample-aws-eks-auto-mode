@@ -12,7 +12,7 @@ variable "region" {
 
 variable "eks_cluster_version" {
   description = "EKS Cluster version"
-  default     = "1.33"
+  default     = "1.34"
   type        = string
 }
 
@@ -41,4 +41,16 @@ variable "subdomain" {
   description = "Optional subdomain prefix under var.base_domain (e.g. \"automode\" -> automode.example.com). Ignored when var.base_domain is empty."
   type        = string
   default     = ""
+}
+
+variable "ephemeral_storage_kms_key_id" {
+  description = "Optional KMS key ID for encrypting ephemeral storage on Auto Mode nodes. Leave empty to use default encryption."
+  type        = string
+  default     = ""
+}
+
+variable "enable_observability" {
+  description = "Enable CloudWatch Container Insights via EKS addon. Provides cluster metrics, pod logs, and Application Signals tracing. Incurs CloudWatch costs."
+  type        = bool
+  default     = false
 }

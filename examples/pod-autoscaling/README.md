@@ -1,6 +1,7 @@
 # Pod Autoscaling on EKS Auto Mode
 
 ## Table of Contents
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Part 1: Horizontal Pod Autoscaler (HPA)](#part-1-horizontal-pod-autoscaler-hpa)
   - [HPA Architecture](#hpa-architecture)
@@ -8,6 +9,10 @@
   - [HPA Cleanup](#hpa-cleanup)
 - [Part 2: KEDA Event-Driven Autoscaling](#part-2-keda-event-driven-autoscaling)
 - [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Overview
 Pod autoscaling is essential for maintaining optimal performance and cost efficiency in Kubernetes clusters. This example demonstrates two complementary approaches:
@@ -46,19 +51,7 @@ The HPA automatically scales the number of pods in a deployment based on observe
 
 ### HPA Implementation Steps
 
-#### 1. Setup EKS Auto Mode Cluster
-First, deploy your EKS cluster using Terraform:
-
-```bash
-cd sample-aws-eks-auto-mode/terraform
-
-terraform init
-terraform apply -auto-approve
-
-$(terraform output -raw configure_kubectl)
-```
-
-#### 2. Install Metrics Server
+#### 1. Install Metrics Server
 The HPA requires the Metrics Server to collect resource metrics from pods:
 
 ```bash
@@ -72,13 +65,11 @@ Verify the Metrics Server is running:
 kubectl get pods -n kube-system | grep metrics-server
 ```
 
-#### 3. Deploy the Sample Application
+#### 2. Deploy the Sample Application
 Deploy a PHP Apache server that will serve as our scaling target:
 
 ```bash
-cd ../examples/pod-autoscaling/hpa
-
-kubectl apply -f php-apache.yaml
+kubectl apply -f hpa/php-apache.yaml
 ```
 
 > ✅ **Application Details**: The php-apache deployment includes:
@@ -87,7 +78,7 @@ kubectl apply -f php-apache.yaml
 > - **Container**: `registry.k8s.io/hpa-example` - a simple PHP server
 > - **Service**: Exposes the application on port 80
 
-#### 4. Create the HorizontalPodAutoscaler
+#### 3. Create the HorizontalPodAutoscaler
 Create an HPA that maintains between 1 and 10 replicas based on CPU utilization:
 
 ```bash
@@ -97,10 +88,10 @@ kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10
 Alternatively, you can use the declarative approach:
 
 ```bash
-kubectl apply -f hpa.yaml
+kubectl apply -f hpa/hpa.yaml
 ```
 
-#### 5. Verify HPA Status
+#### 4. Verify HPA Status
 Check the current status of the HPA:
 
 ```bash
@@ -115,7 +106,7 @@ php-apache   Deployment/php-apache/scale   0% / 50%  1         10        1      
 
 > 📘 **Note**: The current CPU consumption shows 0% because there's no load on the server yet.
 
-#### 6. Generate Load to Trigger Scaling
+#### 5. Generate Load to Trigger Scaling
 Start a load generator to increase CPU utilization:
 
 ```bash
@@ -123,7 +114,7 @@ Start a load generator to increase CPU utilization:
 kubectl run -i --tty load-generator --rm --image=busybox:1.28 --restart=Never -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
 ```
 
-#### 7. Watch the Scaling in Action
+#### 6. Watch the Scaling in Action
 In another terminal, monitor the HPA scaling behavior:
 
 ```bash
@@ -154,7 +145,7 @@ NAME         READY   UP-TO-DATE   AVAILABLE   AGE
 php-apache   8/8     8            8           19m
 ```
 
-#### 8. Stop Load Generation and Observe Scale-Down
+#### 7. Stop Load Generation and Observe Scale-Down
 Stop the load generator by pressing `Ctrl+C` in the load generator terminal.
 
 Monitor the scale-down process:
@@ -183,7 +174,7 @@ kubectl delete pod load-generator
 kubectl delete hpa php-apache
 
 # Remove the application
-kubectl delete -f php-apache.yaml
+kubectl delete -f hpa/php-apache.yaml
 ```
 
 > 📚 **Attribution**: This HPA demo was adapted from the [Kubernetes HorizontalPodAutoscaler Walkthrough](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/).
@@ -235,10 +226,8 @@ This example demonstrates KEDA scaling a GPU-based AI model inference workload b
 Deploy the required AWS resources (SQS queue, IAM roles) using Terraform:
 
 ```bash
-# Navigate to KEDA terraform directory (assuming you're in HPA folder)
-cd ../keda/terraform
+cd keda/terraform
 
-# Initialize and deploy AWS resources
 terraform init
 terraform apply -auto-approve
 ```
@@ -252,10 +241,8 @@ terraform apply -auto-approve
 Set up the necessary namespaces and service accounts:
 
 ```bash
-# Navigate back to KEDA directory
 cd ..
 
-# Create namespaces and service accounts
 kubectl apply -f namespace.yaml
 kubectl apply -f keda-service-account.yaml
 kubectl apply -f vllm-qwen3/namespace.yaml
@@ -464,5 +451,3 @@ terraform destroy -auto-approve
 ```
 
 > ⚠️ **Warning**: This will remove all AWS resources created for the KEDA demo, including the SQS queue and IAM roles.
-
-> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.

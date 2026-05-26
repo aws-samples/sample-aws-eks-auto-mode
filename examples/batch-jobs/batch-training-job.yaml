@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: batch-jobs
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ml-training-example
+  namespace: batch-jobs
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 2
+  template:
+    metadata:
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+      labels:
+        app: ml-training
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: training
+          image: public.ecr.aws/docker/library/busybox:latest
+          command: ["sh", "-c", "echo 'Simulating long-running batch job...' && sleep 7200"]
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi

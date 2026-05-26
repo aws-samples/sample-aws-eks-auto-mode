@@ -9,6 +9,7 @@ resource "local_file" "setup_graviton" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/graviton-nodepool.yaml"
 }
@@ -18,6 +19,7 @@ resource "local_file" "setup_spot" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/spot-nodepool.yaml"
 }
@@ -27,6 +29,7 @@ resource "local_file" "setup_gpu" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/gpu-nodepool.yaml"
 }
@@ -36,8 +39,29 @@ resource "local_file" "setup_neuron" {
     node_iam_role_name = module.eks.node_iam_role_name
     cluster_name       = module.eks.cluster_name
     tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
   })
   filename = "${path.module}/../nodepools/neuron-nodepool.yaml"
+}
+
+resource "local_file" "setup_odcr_nodepool" {
+  content = templatefile("${path.module}/../examples/capacity-reservation/odcr-nodepool.yaml.tpl", {
+    node_iam_role_name = module.eks.node_iam_role_name
+    cluster_name       = module.eks.cluster_name
+    tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
+  })
+  filename = "${path.module}/../examples/capacity-reservation/odcr-nodepool.yaml"
+}
+
+resource "local_file" "setup_static_nodepool" {
+  content = templatefile("${path.module}/../examples/static-capacity/static-nodepool.yaml.tpl", {
+    node_iam_role_name = module.eks.node_iam_role_name
+    cluster_name       = module.eks.cluster_name
+    tags               = local.tags
+    kms_key_id         = var.ephemeral_storage_kms_key_id
+  })
+  filename = "${path.module}/../examples/static-capacity/static-nodepool.yaml"
 }
 
 # Example workload templates: render Ingress YAMLs with the public hostname

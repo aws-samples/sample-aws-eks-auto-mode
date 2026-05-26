@@ -1,11 +1,16 @@
 # Neuron Workloads on EKS Auto Mode
 
 ## Table of Contents
+- [Prerequisites](#prerequisites)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Implementation Steps](#implementation-steps)
-- [Cleanup](#cleanup)
+- [Clean up](#clean-up)
 - [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Overview
 [AWS Inferentia2](https://aws.amazon.com/machine-learning/inferentia/) accelerates machine learning inference workloads with custom-built chips. Key benefits include:
@@ -43,21 +48,11 @@ This example showcases Inferentia2-accelerated workloads using the following com
 
 ## Implementation Steps
 
-### 1. Setup EKS Auto Mode Cluster
-Deploy the cluster using Terraform:
-```bash
-cd sample-aws-eks-auto-mode/terraform
-terraform init
-terraform apply -auto-approve
-$(terraform output -raw configure_kubectl)
-```
-
-### 2. Deploy Neuron NodePool
+### 1. Deploy Neuron NodePool
 Deploy the NodePool that will manage our Inferentia2 instances:
 
 ```bash
-cd ../nodepools
-kubectl apply -f neuron-nodepool.yaml
+kubectl apply -f ../../nodepools/neuron-nodepool.yaml
 ```
 
 > ⚠️ The Neuron NodePool applies the following taint to ensure only Neuron-compatible workloads are scheduled on these nodes:
@@ -71,10 +66,9 @@ kubectl apply -f neuron-nodepool.yaml
 >
 > Any pods that need to run on Neuron nodes must include matching tolerations in their specifications.
 
-### 3. Deploy the vLLM Model
+### 2. Deploy the vLLM Model
 
 ```bash
-cd ../examples/neuron
 kubectl apply -f vllm-deployment.yaml
 ```
 
@@ -106,7 +100,7 @@ kubectl -n vllm-neuron logs -f deployment/deepseek-r1-qwen3-8b-neuron
 
 > 📘 The manifest provisions a `ClusterIP` Service `deepseek-r1-qwen3-8b-neuron` (port 80 → 8000) and an Ingress `deepseek-r1-qwen3-8b-neuron` using the cluster-wide `alb` IngressClass. By default the ALB scheme is `internal` (VPC-only) — no public endpoint is created.
 
-### 4. Test the Endpoint
+### 3. Test the Endpoint
 
 By default, this example exposes its API via an **internal ALB** — reachable from inside the VPC only. To call it from your laptop, port-forward the Service:
 
@@ -129,30 +123,12 @@ kubectl get ingress deepseek-r1-qwen3-8b-neuron -n vllm-neuron \
 
 To expose the API publicly over HTTPS, deploy the Terraform stack with `var.base_domain` set to a public Route53 zone you own (see top-level [README](../../README.md#-public-exposure-opt-in)). The example will be reachable at `https://neuron.<full_domain>` once external-dns publishes the record.
 
-## Cleanup
-
-🧹 Follow these steps to clean up all resources:
-
-### 1. Remove Kubernetes Resources
-First, remove the application components and node pool:
+## Clean up
 
 ```bash
-# Remove application components
 kubectl delete -f vllm-deployment.yaml
-
-# Remove Neuron node pool
 kubectl delete -f ../../nodepools/neuron-nodepool.yaml
 ```
-
-### 2. Remove Cluster (Optional)
-If you're done with the entire cluster:
-
-```bash
-cd ../../terraform
-terraform destroy --auto-approve
-```
-
-> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
 
 ## Troubleshooting
 

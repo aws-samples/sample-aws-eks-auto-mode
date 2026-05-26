@@ -13,6 +13,10 @@ spec:
         aws:eks:cluster-name: ${cluster_name}
   tags:
     ${indent(4, yamlencode(tags))}
+%{ if kms_key_id != "" ~}
+  ephemeralStorage:
+    kmsKeyID: ${kms_key_id}
+%{ endif ~}
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -42,5 +46,7 @@ spec:
   limits:
     cpu: 1000
   disruption:
-    consolidationPolicy: WhenEmpty
-    consolidateAfter: 30s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 60s
+    budgets:
+      - nodes: "10%"

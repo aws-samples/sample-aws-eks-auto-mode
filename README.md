@@ -4,37 +4,35 @@
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Architecture](#architecture)
 - [Examples](#examples)
 - [Cleanup](#cleanup)
-- [Security Considerations](#security-considerations)
+- [Configuration](#configuration)
+- [Components](#components)
+- [Learn More](#learn-more)
 - [Contributing](#contributing)
 - [License and Disclaimer](#license-and-disclaimer)
 
 ## Overview
-[Amazon EKS Auto Mode](https://aws.amazon.com/eks/auto-mode/) simplifies Kubernetes cluster management on AWS. Key benefits include:
 
-🚀 **Simplified Management**
-- One-click cluster provisioning
-- Automated compute, storage, and networking
-- Seamless integration with AWS services
+[Amazon EKS Auto Mode](https://aws.amazon.com/eks/auto-mode/) simplifies Kubernetes cluster management by automating compute, storage, and networking decisions. Under the hood it runs Karpenter, the AWS Load Balancer Controller, and the EBS CSI driver as managed components — you get the benefits without installing or upgrading any of them.
 
-⚡ **Workload Support**
-- Graviton instances for optimal price-performance
-- GPU acceleration for ML/AI workloads
-- Inferentia2 for cost-effective ML inference
-- Mixed architecture support
+This repository is an educational companion. Each example demonstrates a specific EKS Auto Mode pattern (Graviton, GPU, Spot, ODCR targeting, disruption budgets, etc.) with a self-contained README explaining the "why" alongside the "how." Deploy the base cluster once, then apply individual examples to explore.
 
-🔧 **Infrastructure Features**
-- Auto-scaling with Karpenter
-- Automated load balancer configuration
-- Cost optimization through node consolidation
+**Key capabilities covered:**
 
-This repository provides a production-ready template for deploying various workloads on EKS Auto Mode.
+- Graviton (ARM64) and x86 workloads side by side
+- GPU and Inferentia2 (Neuron) ML inference
+- Spot and On-Demand mixed pools with overprovision headroom
+- On-Demand Capacity Reservation targeting
+- Static capacity pools and disruption budgets
+- HPA and KEDA-driven autoscaling
+- KMS encryption for ephemeral node storage
+- CloudWatch Container Insights observability
+- 5-layer resource tagging for cost allocation
 
 ## Prerequisites
 
-🛠️ **Required Tools**
+**Required Tools:**
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
@@ -45,20 +43,13 @@ This repository provides a production-ready template for deploying various workl
 
 1. **Clone Repository**:
 ```bash
-# Get the code
 git clone https://github.com/aws-samples/sample-aws-eks-auto-mode.git
 cd sample-aws-eks-auto-mode
-
-# Configure remote
-git remote set-url origin https://github.com/aws-samples/sample-aws-eks-auto-mode.git
 ```
 
 2. **Deploy Cluster**:
 ```bash
-# Navigate to Terraform directory
 cd terraform
-
-# Initialize and apply Terraform
 terraform init
 terraform apply -auto-approve
 
@@ -66,66 +57,155 @@ terraform apply -auto-approve
 $(terraform output -raw configure_kubectl)
 ```
 
+3. **Apply an example** (e.g., Graviton):
+```bash
+kubectl apply -f examples/graviton/
+```
+
+## Examples
+
+Each example has its own README with detailed explanations of the underlying mechanics.
+
+### Compute Patterns
+
+| Example | Description |
+|---------|-------------|
+| [Graviton](examples/graviton/) | ARM64 workloads on cost-effective Graviton instances. Deploys a 2048 game. |
+| [Spot](examples/spot/) | Fault-tolerant workloads on EC2 Spot with diverse instance families. Deploys a 2048 game. |
+| [GPU](examples/gpu/) | GPU-accelerated ML inference (Qwen 3 on NVIDIA GPUs). |
+| [Neuron](examples/neuron/) | ML inference on AWS Inferentia2 (DeepSeek-R1-Qwen3-8B served by vLLM). |
+
+### Cost Optimization
+
+| Example | Description |
+|---------|-------------|
+| [Cost Optimization](examples/cost-optimization/) | OD/Spot mixed pools with weighted priorities and pause-pod overprovision headroom. |
+
+### Advanced Scheduling
+
+| Example | Description |
+|---------|-------------|
+| [Capacity Reservation](examples/capacity-reservation/) | Pin workloads to On-Demand Capacity Reservations (ODCRs) so reserved capacity is consumed. |
+| [Static Capacity](examples/static-capacity/) | Maintain a fixed fleet of always-on nodes using `spec.replicas`, immune to consolidation. |
+| [Batch Jobs](examples/batch-jobs/) | Protect long-running jobs from eviction using `do-not-disrupt` annotations and dedicated NodePools. |
+| [Disruption Budgets](examples/disruption-budgets/) | Limit simultaneous node drains during consolidation to prevent cascading failures. |
+
+### Autoscaling
+
+| Example | Description |
+|---------|-------------|
+| [Pod Autoscaling](examples/pod-autoscaling/) | HPA for CPU-based scaling plus KEDA for event-driven scaling (SQS queue depth). |
+
+### Observability
+
+| Example | Description |
+|---------|-------------|
+| [Observability](examples/observability/) | CloudWatch Container Insights integration for metrics, pod logs, and Application Signals tracing. |
+
+## Cleanup
+
+A standalone cleanup script handles the full teardown lifecycle — draining Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeping for any orphans that survived.
+
+```bash
+# Recommended: interactive cleanup (prompts per resource)
+./scripts/cleanup.sh
+
+# Non-interactive: delete everything
+./scripts/cleanup.sh --yes
+
+# Preview what would be deleted
+./scripts/cleanup.sh --dry-run
+
+# Delete everything except storage (PVCs/EBS)
+./scripts/cleanup.sh --yes --keep-storage
+
+# Orphan sweep only (terraform already destroyed)
+./scripts/cleanup.sh --skip-terraform --cluster-name <name> --region <region>
+```
+
+The script runs in three phases:
+1. **Pre-drain** — deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
+2. **Terraform destroy** — runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
+3. **Orphan sweep** — scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
+
+> **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state — they persist as orphans after the cluster is gone. The cleanup script handles these.
+
+<details>
+<summary>Manual alternative (not recommended)</summary>
+
+```bash
+cd terraform
+terraform init
+terraform destroy --auto-approve
+```
+
+This only destroys Terraform-managed resources. You will need to manually find and delete any orphaned load balancers, volumes, instances, security groups, IAM roles, OIDC providers, and CloudWatch log groups.
+</details>
+
+## Configuration
+
+All inputs are defined in `terraform/variables.tf`. Override them with `-var` flags or a `terraform.tfvars` file.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `name` | Name of the VPC and EKS cluster | `automode-cluster` |
+| `region` | AWS region to deploy into | `us-west-2` |
+| `eks_cluster_version` | EKS Kubernetes version | `1.34` |
+| `vpc_cidr` | VPC CIDR block (RFC 1918) | `10.0.0.0/16` |
+| `tags` | Tags applied to every taggable resource (provider default\_tags, EKS primary SG, NodeClass EC2/EBS/ENI, StorageClass EBS, ALB) | `{"auto-delete" = "never"}` |
+| `base_domain` | Public Route53 hosted zone for HTTPS exposure. Leave empty for internal-only (safe-by-default). | `""` |
+| `subdomain` | Optional prefix under `base_domain` (e.g., `automode` gives `automode.example.com`). Ignored when `base_domain` is empty. | `""` |
+| `ephemeral_storage_kms_key_id` | KMS key ID for encrypting ephemeral node storage. Leave empty for default encryption. | `""` |
+| `enable_observability` | Enable CloudWatch Container Insights addon (metrics, logs, Application Signals). Incurs CloudWatch costs. | `false` |
+
+**Example — public exposure with observability:**
+```bash
+terraform apply \
+  -var='base_domain=example.com' \
+  -var='subdomain=automode' \
+  -var='enable_observability=true'
+```
+
 ## Components
 
-### 🔄 NodePools
-EKS Auto Mode leverages [Karpenter](https://karpenter.sh/docs/) for intelligent node management:
+### How EKS Auto Mode Works
 
-⚡ **Auto-scaling Features**
-- Dynamic node provisioning
-- Workload-aware scaling
-- Resource optimization
+EKS Auto Mode fully automates the operational overhead of running Kubernetes on AWS. Rather than requiring you to install, configure, and upgrade individual cluster add-ons, Auto Mode runs them as managed components inside the EKS control plane. Specifically, it:
 
-📦 **Preconfigured NodePools**
-In these samples we configure the following Nodepools for you:
-- ARM64-optimized Graviton nodes
-- EC2 Spot nodes
-- GPU-accelerated compute nodes
-- Inferentia2 ML inference nodes
+- **Provisions, scales, and consolidates compute** — powered by Karpenter, it matches pending pods to optimal EC2 instances, bins-packs efficiently, and removes underutilized nodes automatically.
+- **Manages pod networking** — handles VPC CNI configuration, IP address allocation, and security group enforcement without any DaemonSet you need to maintain.
+- **Handles persistent storage** — provisions and attaches EBS volumes from PersistentVolumeClaims via the managed EBS CSI driver.
+- **Automates load balancing** — creates ALBs and NLBs from Ingress and Service resources, including TLS termination with ACM certificates.
+- **Runs CoreDNS** — cluster DNS is a managed component with no installation or tuning required.
+- **Manages Pod Identity Agent** — enables fine-grained IAM roles for pods without manual IRSA configuration.
+- **Monitors node health** — detects unhealthy nodes and automatically repairs or replaces them.
+- **Handles AMI selection and patching** — picks the correct AMI for each instance type, applies security patches, and remediates drift.
 
-> 📘 **Note**: Check [NodePool Templates](nodepool-templates) for detailed configurations.
+All of these run in the control plane — you never install, configure, or upgrade them. You interact through standard Kubernetes APIs (NodePool, NodeClass, Ingress, StorageClass, etc.) and EKS handles the rest.
 
+### NodePool → NodeClass → EC2 Flow
 
-### 🛠️ NodeClass Configuration
-EKS Auto Mode uses [NodeClass](https://docs.aws.amazon.com/eks/latest/userguide/create-node-class.html) for granular control over infrastructure-level settings:
+The provisioning path:
 
-⚙️ **Customization Options**
-- Subnet selection for node placement
-- Security group configuration
-- Ephemeral storage settings
-- Network policies and SNAT configuration
-- Custom tagging for resource management
+```
+Pod pending → Karpenter matches NodePool constraints (instance families, AZs, capacity type)
+           → NodePool references a NodeClass (subnet selection, security groups, tags, storage)
+           → Karpenter launches an EC2 instance matching the constraints
+           → kubelet registers the node and the pod is scheduled
+```
 
-📦 **Implementation Approach**
-In these samples, we create a custom NodeClass for each example workload type:
-- Each NodeClass is defined in the same file as its corresponding NodePool
-- Custom NodeClasses are only needed for specific infrastructure customizations
-- For most use cases, the default NodeClass works best with EKS Auto Mode
+**NodePools** define what to launch (instance types, architectures, capacity type, taints/labels). **NodeClasses** define how to launch (subnets, SGs, ephemeral storage, tags pushed to EC2/EBS/ENI).
 
-> ⚠️ **Important**: When creating custom NodeClasses, be aware of these considerations:
-> - If you change the Node IAM Role, you'll need to create a new Access Entry
-> - Custom NodeClasses may require additional configuration to work properly with EKS Auto Mode
-> - Do not name your custom NodeClass "default" as this is reserved
+### Load Balancer Configuration
 
-### 🌐 Load Balancer Configuration
-EKS Auto Mode automates load balancer setup with AWS best practices:
+EKS Auto Mode automates ALB and NLB setup:
 
-1. 🔹 **Application Load Balancer (ALB)**
-   - IngressClass-based configuration
-   - [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html)
-   - Example: [2048 Game Ingress](/examples/graviton/2048-ingress.yaml)
+- **Application Load Balancer (ALB)** — IngressClass-based, supports shared ALB groups across namespaces. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html)
+- **Network Load Balancer (NLB)** — Native Kubernetes Service type LoadBalancer. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
 
-2. 🔸 **Network Load Balancer (NLB)**
-   - Native Kubernetes service integration
-   - [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
+> **Subnet tagging requirement**: If subnet IDs are not explicit in IngressClassParams, subnets need `kubernetes.io/role/elb: "1"` (public) or `kubernetes.io/role/internal-elb: "1"` (private). The Terraform code in this repo adds these tags automatically.
 
-> **Important**: If subnet IDs are not specified in IngressClassParams, AWS requires specific tags on subnets for proper load balancer functionality:
-> - Public subnets: `kubernetes.io/role/elb: "1"`
-> - Private subnets: `kubernetes.io/role/internal-elb: "1"`
-> 
-> Our Terraform code automatically creates these necessary subnet tags, but you may need to add them manually if using custom networking configurations.
-
-#### 🌍 Public exposure (opt-in)
+#### Public exposure (opt-in)
 
 By default this stack is **safe-by-default**: every example workload exposes an *internal-scheme* load balancer reachable only via `kubectl port-forward`. Nothing is published to the public internet without an explicit opt-in.
 
@@ -156,110 +236,26 @@ The ALB controller picks the right certificate via SNI from each Ingress's `host
 
 To revert to safe-by-default, unset `var.base_domain` and re-apply.
 
-### 💾 EBS CSI Driver Configuration
-EKS Auto Mode automates persistent storage setup with Amazon EBS:
+### EBS CSI Driver
 
-1. 🔹 **Automated Storage Management**
-   - No need to install the EBS CSI controller on EKS Auto Mode clusters
-   - [AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html)
+EKS Auto Mode includes the EBS CSI driver as a managed component — no installation required.
 
-2. 🔸 **Storage Classes and PVCs**
-   - Native Kubernetes storage integration
-   - Optimized for various workload requirements
+- Only volumes provisioned from a StorageClass using `ebs.csi.eks.amazonaws.com` can mount on Auto Mode nodes.
+- Existing volumes need migration via volume snapshots.
+- Custom KMS encryption may require additional IAM permissions.
 
-> **Important**: The EBS CSI driver requires specific IAM permissions to make calls to AWS APIs. EKS Auto Mode simplifies this setup, but you should be aware of the following:
-> - Only platform versions created from a storage class using `ebs.csi.eks.amazonaws.com` as the provisioner can be mounted on nodes created by EKS Auto Mode
-> - Existing platform versions must be migrated to the new storage class using a volume snapshot
-> - For custom KMS key encryption, additional IAM permissions may be required
+[AWS Documentation](https://docs.aws.amazon.com/eks/latest/userguide/ebs-csi.html)
 
-## Examples
+## Learn More
 
-🚀 Get started with our sample workloads:
-
-### ARM64 Applications
-🎮 [Running Graviton Workloads](examples/graviton/)
-- Cost-effective ARM64 deployments
-- Optimized performance
-- Example: 2048 game application
-
-### Fault Tolerant Applications
-💰 [Running Spot Workloads](examples/spot/)
-- Cost-effective deployments
-- Diverse and flexible compute choices
-- Example: 2048 game application
-
-### GPU Applications
-📱 [Running GPU Workloads](examples/gpu/)
-- ML/AI model deployment
-- GPU-accelerated computing
-- Example: Qwen 3 model inference
-
-### Neuron Applications
-🧠 [Running Neuron Workloads](examples/neuron/)
-- ML inference on Inferentia2
-- Cost-effective acceleration
-- Example: DeepSeek-R1-Qwen3-8B served by vLLM
-
-### Pod Autoscaling
-📊 [Pod Autoscaling with HPA and KEDA](examples/pod-autoscaling/)
-- Horizontal Pod Autoscaler (HPA) basics
-- CPU-based autoscaling with PHP Apache server
-- KEDA for event-driven autoscaling
-- SQS queue-based GPU workload scaling
-
-## Cleanup
-
-A standalone cleanup script handles the full teardown lifecycle — draining Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeping for any orphans that survived.
-
-```bash
-# Recommended: interactive cleanup (prompts per resource)
-./scripts/cleanup.sh
-
-# Non-interactive: delete everything
-./scripts/cleanup.sh --yes
-
-# Preview what would be deleted
-./scripts/cleanup.sh --dry-run
-
-# Delete everything except storage (PVCs/EBS)
-./scripts/cleanup.sh --yes --keep-storage
-
-# Orphan sweep only (terraform already destroyed)
-./scripts/cleanup.sh --skip-terraform --cluster-name <name> --region <region>
-```
-
-The script runs in three phases:
-1. **Pre-drain** — deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
-2. **Terraform destroy** — runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
-3. **Orphan sweep** — scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
-
-> ⚠️ **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state — they persist as orphans after the cluster is gone. The cleanup script handles these.
-
-<details>
-<summary>Manual alternative (not recommended)</summary>
-
-```bash
-cd terraform
-terraform init
-terraform destroy --auto-approve
-```
-
-This only destroys Terraform-managed resources. You will need to manually find and delete any orphaned load balancers, volumes, instances, security groups, IAM roles, OIDC providers, and CloudWatch log groups.
-</details>
+- [EKS Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) — official AWS guide covering setup, NodePools, NodeClasses, and managed components
+- [Karpenter documentation](https://karpenter.sh/docs/) — the provisioner that powers Auto Mode's compute layer; useful for understanding NodePool/NodeClass semantics
+- [karpenter-blueprints](https://github.com/aws-samples/karpenter-blueprints) — additional Karpenter patterns beyond what this repo covers
+- [platform-engineering-on-eks](https://github.com/aws-samples/platform-engineering-on-eks) — broader platform engineering patterns on EKS
 
 ## Security Considerations
-Our code is continuously scanned using [Checkov](https://www.checkov.io/5.Policy%20Index/kubernetes.html). The following security considerations are documented for transparency:
 
-|Checks	|Details	|Reasons	|
-|---	|---	|---	|
-|CKV_TF_1	|Ensure Terraform module sources use a commit hash	|For easy experimentation, we set version of module, instead of setting a commit hash. Consider implementing a commit hash in a production cluster. [Read more on why we need to set commit hash for modules here.](https://medium.com/boostsecurity/erosion-of-trust-unmasking-supply-chain-vulnerabilities-in-the-terraform-registry-2af48a7eb2)	|
-|CKV2_K8S_6	|Minimize the admission of pods which lack an associated NetworkPolicy	|All Pod to Pod communication is allowed by default for easy experimentation in this project. Amazon VPC CNI now supports [Kubernetes Network Policies](https://aws.amazon.com/blogs/containers/amazon-vpc-cni-now-supports-kubernetes-network-policies/) to secure network traffic in kubernetes clusters	|
-|CKV_K8S_8	|Liveness Probe Should be Configured	|For easy experimentation, no health checks is to be performed against the container to determine whether it is alive or not. Consider implementing [health checks](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) in a production cluster.	|
-|CKV_K8S_9	|Readiness Probe Should be Configured	|For easy experimentation, no health checks is to be performed against the container to determine whether it is alive or not. Consider implementing health checks in a production cluster.	|
-|CKV_K8S_22	|Use read-only filesystem for containers where possible	|We've made an exception for the workloads that requires are Read/Write file system. [Configure your images with read-only root file system](https://docs.aws.amazon.com/eks/latest/best-practices/pod-security.html#_configure_your_images_with_read_only_root_file_system)	|
-|CKV_K8S_23	|Minimize the admission of root containers	|This project uses default root container configurations for demonstration purposes. While this doesn't follow security best practices, it ensures compatibility with demo images. For production, configure runAsNonRoot: true and follow [guidance](https://docs.docker.com/engine/reference/builder/#user) on building images with specified user ID.  	|
-|CKV_K8S_37	|Minimize the admission of containers with capabilities assigned	|For easy experimentation, we've made exception for the workloads that requires added capability. For production purposes, we recommend [capabilities field](https://docs.aws.amazon.com/eks/latest/best-practices/pod-security.html#_linux_capabilities) that allows granting certain privileges to a process without granting all the privileges of the root user.  	|
-|CKV_K8S_40	|Containers should run as a high UID to avoid host conflict	|We've used publicly available container images in this project for customers' easy access. For test purposes, the container images user id are left intact. See [how to define UID](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod).	| 
+See [SECURITY_CONSIDERATIONS.md](SECURITY_CONSIDERATIONS.md) for Checkov scan results and documented exceptions.
 
 ## Contributing
 Contributions welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md).
