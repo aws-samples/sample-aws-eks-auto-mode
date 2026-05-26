@@ -119,7 +119,7 @@ Count pods per capacity type:
 
 ```bash
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o json | \
-  jq -r '.items[].spec.nodeName' | sort -u | \
+  jq -r '.items[].spec.nodeName' | \
   while read node; do kubectl get node "$node" -o jsonpath="{.metadata.labels.karpenter\.sh/capacity-type}"; echo; done | \
   sort | uniq -c
 ```
@@ -132,23 +132,36 @@ Verify pause pods are running and holding resources:
 kubectl get pods -n cost-optimization -l app=overprovision
 ```
 
-Check their priority class:
+Check their priority class (should show `pause-pods`):
 
 ```bash
 kubectl get pods -n cost-optimization -l app=overprovision -o jsonpath='{.items[0].spec.priorityClassName}'
 ```
 
-Watch preemption in action — scale a real workload and observe events:
+Trigger preemption — in a second terminal, watch for preemption events:
 
 ```bash
 kubectl get events -n cost-optimization --field-selector reason=Preempted -w
 ```
 
-Measure scheduling latency (time from creation to running):
+Then in your first terminal, scale the real workload so it needs the resources pause pods are holding:
 
 ```bash
-kubectl get pods -n cost-optimization -o json | \
-  jq '.items[] | select(.status.phase=="Running") | .metadata.name + ": " + (.status.conditions[] | select(.type=="PodScheduled") | .lastTransitionTime)'
+kubectl scale deployment web-mixed-capacity -n cost-optimization --replicas=12
+```
+
+You should see pause pods get evicted (Preempted events in the watch terminal) and the new web pods schedule instantly on the freed capacity. The evicted pause pods will go Pending until new nodes launch, restoring headroom.
+
+Verify the pause pods were preempted and are now pending:
+
+```bash
+kubectl get pods -n cost-optimization -l app=overprovision
+```
+
+Scale back down to restore normal state:
+
+```bash
+kubectl scale deployment web-mixed-capacity -n cost-optimization --replicas=6
 ```
 
 ## Clean up
