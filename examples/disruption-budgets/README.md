@@ -102,28 +102,22 @@ kubectl get nodepool production-nodepool -o yaml | grep -A 30 disruption
 
 ## What to observe
 
-Check current disruption budget state:
+Verify the budgets are correctly configured in the spec:
 
 ```bash
-kubectl get nodepool production-nodepool -o jsonpath='{.status.disruption}'
+kubectl get nodepool production-nodepool -o jsonpath='{.spec.disruption.budgets}' | jq .
 ```
 
-Watch karpenter logs for budget enforcement:
+Check the NodePool status (shows active budget conditions when nodes exist):
 
 ```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "budget\|disruption"
+kubectl describe nodepool production-nodepool | grep -A5 "Status"
 ```
 
-During business hours, verify no consolidation occurs:
+List nodes managed by this pool (if workloads are scheduled):
 
 ```bash
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "blocked by budget"
-```
-
-During maintenance window, verify drift remediation proceeds:
-
-```bash
-kubectl get nodes --sort-by=.metadata.creationTimestamp
+kubectl get nodes -l karpenter.sh/nodepool=production-nodepool --sort-by=.metadata.creationTimestamp
 ```
 
 ## Clean up
