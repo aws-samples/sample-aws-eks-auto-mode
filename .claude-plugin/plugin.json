@@ -1,0 +1,14 @@
+{
+  "name": "eks-automode",
+  "displayName": "EKS Auto Mode Skills",
+  "version": "1.0.0",
+  "description": "Two Claude Code skills for EKS Auto Mode: onboarding guide for newcomers and maintenance playbook for repo maintainers",
+  "author": {
+    "name": "AWS Samples",
+    "url": "https://github.com/aws-samples"
+  },
+  "homepage": "https://github.com/aws-samples/sample-aws-eks-auto-mode",
+  "repository": "https://github.com/aws-samples/sample-aws-eks-auto-mode",
+  "license": "MIT-0",
+  "keywords": ["eks", "auto-mode", "kubernetes", "aws", "karpenter", "nodepool", "nodeclass"]
+}
