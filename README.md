@@ -6,7 +6,7 @@
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.34-326CE5?logo=kubernetes)](https://kubernetes.io/)
 [![Docs](https://img.shields.io/badge/Docs-GitHub%20Pages-blue)](https://aws-samples.github.io/sample-aws-eks-auto-mode/)
 
-> **Automate Kubernetes the easy way** — deploy once, explore GPU, Spot, Graviton, cost optimization, ODCR, disruption budgets, observability, and more. No add-on management required.
+> **Automate Kubernetes the easy way.** Deploy once, explore GPU, Spot, Graviton, cost optimization, ODCR, disruption budgets, observability, and more. Minimal add-on management. Auto Mode handles core compute, storage, and networking add-ons for you.
 
 ## Table of Contents
 - [Overview](#overview)
@@ -22,7 +22,7 @@
 
 ## Overview
 
-[Amazon EKS Auto Mode](https://aws.amazon.com/eks/auto-mode/) simplifies Kubernetes cluster management by automating compute, storage, and networking decisions. Under the hood it runs Karpenter, the AWS Load Balancer Controller, and the EBS CSI driver as managed components — you get the benefits without installing or upgrading any of them.
+[Amazon EKS Auto Mode](https://aws.amazon.com/eks/auto-mode/) simplifies Kubernetes cluster management by automating compute, storage, and networking decisions. Under the hood it runs Karpenter, the AWS Load Balancer Controller, and the EBS CSI driver as managed components. You get the benefits without installing or upgrading any of them.
 
 This repository is an educational companion. Each example demonstrates a specific EKS Auto Mode pattern (Graviton, GPU, Spot, ODCR targeting, disruption budgets, etc.) with a self-contained README explaining the "why" alongside the "how." Deploy the base cluster once, then apply individual examples to explore.
 
@@ -112,7 +112,7 @@ Each example has its own README with detailed explanations of the underlying mec
 
 ## Cleanup
 
-A standalone cleanup script handles the full teardown lifecycle — draining Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeping for any orphans that survived.
+A standalone cleanup script handles the full teardown lifecycle. It drains Kubernetes-controller-managed AWS resources (ALBs, EBS volumes, EC2 instances) before `terraform destroy`, then sweeps for any orphans that survived.
 
 ```bash
 # Recommended: interactive cleanup (prompts per resource)
@@ -132,11 +132,11 @@ A standalone cleanup script handles the full teardown lifecycle — draining Kub
 ```
 
 The script runs in three phases:
-1. **Pre-drain** — deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
-2. **Terraform destroy** — runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
-3. **Orphan sweep** — scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
+1. **Pre-drain** deletes Ingresses, LoadBalancer Services, PVCs, Helm releases, NodePools/NodeClaims while the cluster API is alive so controllers can fire finalizers and release AWS resources.
+2. **Terraform destroy** runs `terraform init` + `destroy` for both the main and KEDA terraform roots.
+3. **Orphan sweep** scans for resources tagged with the cluster name (or matching known patterns for untaggable resources like Auto Mode internal volumes) and prompts for deletion.
 
-> **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state — they persist as orphans after the cluster is gone. The cleanup script handles these.
+> **Why not just `terraform destroy`?** A bare `terraform destroy` doesn't drain Kubernetes-managed resources first. ALBs, EBS volumes, EC2 instances, and ENIs created by in-cluster controllers (ALB controller, EBS CSI, Karpenter) are not in Terraform state. They persist as orphans after the cluster is gone. The cleanup script handles these.
 
 <details>
 <summary>Manual alternative (not recommended)</summary>
@@ -166,7 +166,7 @@ All inputs are defined in `terraform/variables.tf`. Override them with `-var` fl
 | `ephemeral_storage_kms_key_id` | KMS key ID for encrypting ephemeral node storage. Leave empty for default encryption. | `""` |
 | `enable_observability` | Enable CloudWatch Container Insights addon (metrics, logs, Application Signals). Incurs CloudWatch costs. | `false` |
 
-**Example — public exposure with observability:**
+**Example: public exposure with observability:**
 ```bash
 terraform apply \
   -var='base_domain=example.com' \
@@ -180,16 +180,16 @@ terraform apply \
 
 EKS Auto Mode fully automates the operational overhead of running Kubernetes on AWS. Rather than requiring you to install, configure, and upgrade individual cluster add-ons, Auto Mode runs them as managed components inside the EKS control plane. Specifically, it:
 
-- **Provisions, scales, and consolidates compute** — powered by Karpenter, it matches pending pods to optimal EC2 instances, bins-packs efficiently, and removes underutilized nodes automatically.
-- **Manages pod networking** — handles VPC CNI configuration, IP address allocation, and security group enforcement without any DaemonSet you need to maintain.
-- **Handles persistent storage** — provisions and attaches EBS volumes from PersistentVolumeClaims via the managed EBS CSI driver.
-- **Automates load balancing** — creates ALBs and NLBs from Ingress and Service resources, including TLS termination with ACM certificates.
-- **Runs CoreDNS** — cluster DNS is a managed component with no installation or tuning required.
-- **Manages Pod Identity Agent** — enables fine-grained IAM roles for pods without manual IRSA configuration.
-- **Monitors node health** — detects unhealthy nodes and automatically repairs or replaces them.
-- **Handles AMI selection and patching** — picks the correct AMI for each instance type, applies security patches, and remediates drift.
+- **Provisions, scales, and consolidates compute.** Powered by Karpenter, it matches pending pods to optimal EC2 instances, bins-packs efficiently, and removes underutilized nodes automatically.
+- **Manages pod networking.** Handles VPC CNI configuration, IP address allocation, and security group enforcement without any DaemonSet you need to maintain.
+- **Handles persistent storage.** Provisions and attaches EBS volumes from PersistentVolumeClaims via the managed EBS CSI driver.
+- **Automates load balancing.** Creates ALBs and NLBs from Ingress and Service resources, including TLS termination with ACM certificates.
+- **Runs CoreDNS.** Cluster DNS is a managed component with no installation or tuning required.
+- **Manages Pod Identity Agent.** Enables fine-grained IAM roles for pods without manual IRSA configuration.
+- **Monitors node health.** Detects unhealthy nodes and automatically repairs or replaces them.
+- **Handles AMI selection and patching.** Picks the correct AMI for each instance type, applies security patches, and remediates drift.
 
-All of these run in the control plane — you never install, configure, or upgrade them. You interact through standard Kubernetes APIs (NodePool, NodeClass, Ingress, StorageClass, etc.) and EKS handles the rest.
+All of these run in the control plane. You never install, configure, or upgrade them. You interact through standard Kubernetes APIs (NodePool, NodeClass, Ingress, StorageClass, etc.) and EKS handles the rest.
 
 ### NodePool → NodeClass → EC2 Flow
 
@@ -208,8 +208,8 @@ Pod pending → Karpenter matches NodePool constraints (instance families, AZs, 
 
 EKS Auto Mode automates ALB and NLB setup:
 
-- **Application Load Balancer (ALB)** — IngressClass-based, supports shared ALB groups across namespaces. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html)
-- **Network Load Balancer (NLB)** — Native Kubernetes Service type LoadBalancer. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
+- **Application Load Balancer (ALB):** IngressClass-based, supports shared ALB groups across namespaces. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html)
+- **Network Load Balancer (NLB):** Native Kubernetes Service type LoadBalancer. [Docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-nlb.html)
 
 > **Subnet tagging requirement**: If subnet IDs are not explicit in IngressClassParams, subnets need `kubernetes.io/role/elb: "1"` (public) or `kubernetes.io/role/internal-elb: "1"` (private). The Terraform code in this repo adds these tags automatically.
 
@@ -225,7 +225,7 @@ terraform apply -var='base_domain=example.com' -var='subdomain=automode'
 
 When `base_domain` is set, Terraform will:
 
-- Look up the existing public hosted zone (it does **not** create one — the zone must already exist and be the authoritative DNS for that name).
+- Look up the existing public hosted zone (it does **not** create one; the zone must already exist and be the authoritative DNS for that name).
 - Issue an ACM wildcard certificate `*.<subdomain>.<base_domain>` validated via DNS records added to the zone.
 - Install [external-dns](https://github.com/kubernetes-sigs/external-dns) bound to a Pod Identity IAM role scoped to **only** that hosted zone (not `Route53FullAccess`).
 - Switch the cluster-wide `IngressClass alb` to `internet-facing` with a shared ALB group so all example Ingresses share one load balancer.
@@ -240,13 +240,13 @@ Workload hostnames once enabled:
 | `examples/gpu` | `https://gpu.<full_domain>` |
 | `examples/neuron` | `https://neuron.<full_domain>` |
 
-The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert — no `certificateArn` is configured anywhere.
+The ALB controller picks the right certificate via SNI from each Ingress's `host:` against the wildcard cert. No `certificateArn` is configured anywhere.
 
 To revert to safe-by-default, unset `var.base_domain` and re-apply.
 
 ### EBS CSI Driver
 
-EKS Auto Mode includes the EBS CSI driver as a managed component — no installation required.
+EKS Auto Mode includes the EBS CSI driver as a managed component. No installation required.
 
 - Only volumes provisioned from a StorageClass using `ebs.csi.eks.amazonaws.com` can mount on Auto Mode nodes.
 - Existing volumes need migration via volume snapshots.
@@ -256,10 +256,10 @@ EKS Auto Mode includes the EBS CSI driver as a managed component — no installa
 
 ## Learn More
 
-- [EKS Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) — official AWS guide covering setup, NodePools, NodeClasses, and managed components
-- [Karpenter documentation](https://karpenter.sh/docs/) — the provisioner that powers Auto Mode's compute layer; useful for understanding NodePool/NodeClass semantics
-- [karpenter-blueprints](https://github.com/aws-samples/karpenter-blueprints) — additional Karpenter patterns beyond what this repo covers
-- [platform-engineering-on-eks](https://github.com/aws-samples/platform-engineering-on-eks) — broader platform engineering patterns on EKS
+- [EKS Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/automode.html): official AWS guide covering setup, NodePools, NodeClasses, and managed components
+- [Karpenter documentation](https://karpenter.sh/docs/): the provisioner that powers Auto Mode's compute layer; useful for understanding NodePool/NodeClass semantics
+- [karpenter-blueprints](https://github.com/aws-samples/karpenter-blueprints): additional Karpenter patterns beyond what this repo covers
+- [platform-engineering-on-eks](https://github.com/aws-samples/platform-engineering-on-eks): broader platform engineering patterns on EKS
 
 ## Security Considerations
 
