@@ -1,6 +1,7 @@
 ---
 name: eks-automode-onboard
 description: "Onboarding guide for EKS Auto Mode newcomers. Use when the user asks about EKS Auto Mode concepts, wants to deploy their first Auto Mode cluster, needs help picking an example, or hits common first-day issues. Triggers: what is Auto Mode, how do I deploy, which example, getting started, first cluster, deploy this repo, Auto Mode tutorial, onboard, walkthrough."
+user-invocable: true
 ---
 
 # EKS Auto Mode Onboarding

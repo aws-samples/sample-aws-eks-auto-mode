@@ -1,6 +1,7 @@
 ---
 name: eks-automode-maintain
 description: "Repo maintenance for sample-aws-eks-auto-mode. Keeps docs, templates, rendered YAML, and tagging layers in sync. Use when updating nodepool templates, terraform config, examples, tagging, cleanup scripts, or docs. Triggers: maintain, docs sync, tagging update, template change, rendered yaml, file relationships, PR checklist, keep in sync."
+user-invocable: true
 ---
 
 # EKS Auto Mode — Maintainer Skill
