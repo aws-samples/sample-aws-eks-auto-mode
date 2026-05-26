@@ -9,6 +9,10 @@ title: Static Capacity Pools
 
 Setting `spec.replicas` on a NodePool tells EKS Auto Mode to maintain exactly N nodes at all times, regardless of pod demand. These nodes are never consolidated away when empty. They exist whether workloads are scheduled on them or not.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ```yaml
 spec:
   replicas: 2   # Always maintain exactly 2 nodes
@@ -19,7 +23,6 @@ spec:
 Some workloads need guaranteed capacity available at all times:
 
 - **Always-on inference endpoints** that must respond in milliseconds, not minutes
-- **Database replicas** where cold-start means replay from WAL/snapshot
 - **License-bound software** where the license is tied to a running host
 - **Latency-sensitive services** where waiting for a node to provision (30-90s) is unacceptable
 
@@ -31,14 +34,14 @@ Dynamic scaling introduces cold-start latency. For workloads where that latency 
 |----------|-------------|-------------|
 | Scale-from-zero | Yes | No -- always N nodes |
 | Consolidation | Removes underutilized nodes | Never removes nodes |
-| Scaling trigger | Pending pods | Manual (`kubectl scale nodepool`) |
+| Scaling trigger | Pending pods | Manual (edit `spec.replicas`) |
 | Cost model | Pay only for what you use | Pay for N nodes 24/7 |
 | Cold-start risk | Yes (30-90s node provision) | None |
 
 You can resize a static pool at any time:
 
 ```bash
-kubectl scale nodepool static-gpu-nodepool --replicas=4
+kubectl patch nodepool static-gpu-nodepool --type=merge -p '{"spec":{"replicas":4}}'
 ```
 
 ## The trade-off
@@ -52,34 +55,39 @@ If your workload can tolerate 60-90 seconds of scale-up time, a dynamic pool is 
 ## When to use
 
 - Always-on model serving (vLLM, TGI, Triton)
-- Stateful databases (PostgreSQL, Redis cluster nodes)
 - License servers (FlexLM, RLM)
 - Baseline capacity layer -- handle steady-state traffic with static nodes, burst traffic with a separate dynamic pool
 
 ## Deploy
 
-```bash
-# Render the template (if using Terraform templatefile)
-terraform apply
+> **Cost warning:** This example provisions GPU instances (`g6e` family) which are billed per-second while running. Nodes will launch immediately upon apply and persist until you clean up. Estimated cost: ~$1.50/hr per node.
 
-# Or apply directly after filling variables
+```bash
 kubectl apply -f static-nodepool.yaml
 ```
 
 ## What to observe
 
+Verify exactly 2 nodes exist for this pool (even with zero pods):
+
 ```bash
-# Verify exactly 2 nodes exist for this pool (even with zero pods)
 kubectl get nodes -l karpenter.sh/nodepool=static-gpu-nodepool
+```
 
-# Confirm replicas are set
+Confirm replicas are set:
+
+```bash
 kubectl get nodepool static-gpu-nodepool -o jsonpath='{.spec.replicas}'
+```
 
-# Watch that consolidation does NOT touch these nodes
+Watch that consolidation does NOT touch these nodes:
+
+```bash
 kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep static-gpu
+```
 
-# Scale up
-kubectl scale nodepool static-gpu-nodepool --replicas=4
-# Watch a new node provision immediately (no pending pod required)
-kubectl get nodes -w -l karpenter.sh/nodepool=static-gpu-nodepool
+## Clean up
+
+```bash
+kubectl delete -f .
 ```

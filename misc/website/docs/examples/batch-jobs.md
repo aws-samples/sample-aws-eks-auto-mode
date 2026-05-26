@@ -11,6 +11,10 @@ Karpenter (and EKS Auto Mode) continuously consolidates underutilized nodes. Thi
 
 Without protection, consolidation treats your 8-hour training job the same as a stateless web server -- just another pod to reschedule.
 
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+
 ## How `karpenter.sh/do-not-disrupt` works
 
 Adding this annotation to a pod's metadata tells Auto Mode: "do not voluntarily evict this pod for consolidation or drift remediation."
@@ -55,31 +59,42 @@ A GPU taint prevents CPU pods from landing on GPU nodes. `do-not-disrupt` preven
 
 ## Deploy
 
+Deploy the batch job:
+
 ```bash
 kubectl apply -f batch-training-job.yaml
+```
 
-# Verify the job is running
+Verify the job is running:
+
+```bash
 kubectl get jobs -n batch-jobs
 kubectl get pods -n batch-jobs -o wide
 ```
 
 ## What to observe
 
+Confirm the annotation is on the running pod:
+
 ```bash
-# Confirm the annotation is on the running pod
 kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].metadata.annotations}'
+```
 
-# Watch karpenter logs -- you should see "cannot disrupt" messages for this node
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "cannot disrupt\|do-not-disrupt"
+Identify which node the job landed on:
 
-# Identify which node the job landed on
-NODE=$(kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].spec.nodeName}')
-echo "Protected node: $NODE"
+```bash
+NODE=$(kubectl get pod -n batch-jobs -l app=ml-training -o jsonpath='{.items[0].spec.nodeName}') && echo "Protected node: $NODE"
+```
 
-# Verify that node is NOT being considered for consolidation
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "$NODE"
+Verify the node exists and is not being drained (it will persist as long as the annotated pod runs):
 
-# Once the job completes, the annotation disappears with the pod.
-# The node becomes eligible for consolidation again.
-kubectl get nodes -w  # Watch the node get consolidated after job completion
+```bash
+kubectl get node $NODE
+```
+
+
+## Clean up
+
+```bash
+kubectl delete -f batch-training-job.yaml
 ```

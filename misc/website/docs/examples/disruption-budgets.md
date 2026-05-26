@@ -1,6 +1,6 @@
 ---
 sidebar_position: 10
-title: "Disruption Budgets"
+title: Disruption Budgets
 ---
 
 # Disruption Budgets
@@ -10,6 +10,10 @@ title: "Disruption Budgets"
 Disruption budgets limit how many nodes EKS Auto Mode can voluntarily disrupt at once. Without them, a consolidation decision can drain multiple nodes simultaneously, causing cascading failures as pods compete for remaining capacity.
 
 They are defined in `spec.disruption.budgets[]` on a NodePool and act as a throttle on voluntary disruption velocity.
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Types of budgets
 
@@ -93,23 +97,30 @@ If no `schedule` and `duration` are set, the budget is always active.
 
 ```bash
 kubectl apply -f advanced-budgets-nodepool.yaml
+```
 
-# Verify the disruption policy
+Verify the disruption policy:
+
+```bash
 kubectl get nodepool production-nodepool -o yaml | grep -A 30 disruption
 ```
 
 ## What to observe
 
+Verify the budgets are correctly configured in the spec:
+
 ```bash
-# Check current disruption budget state
-kubectl get nodepool production-nodepool -o jsonpath='{.status.disruption}'
+kubectl get nodepool production-nodepool -o jsonpath='{.spec.disruption.budgets}' | jq .
+```
 
-# Watch karpenter logs for budget enforcement
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter -f | grep "budget\|disruption"
+Check the NodePool status (shows active budget conditions when nodes exist):
 
-# During business hours, verify no consolidation occurs
-kubectl logs -n kube-system -l app.kubernetes.io/name=karpenter | grep "blocked by budget"
+```bash
+kubectl describe nodepool production-nodepool | grep -A5 "Status"
+```
 
-# During maintenance window, verify drift remediation proceeds
-kubectl get nodes --sort-by=.metadata.creationTimestamp
+## Clean up
+
+```bash
+kubectl delete -f advanced-budgets-nodepool.yaml
 ```

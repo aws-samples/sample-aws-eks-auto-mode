@@ -1,11 +1,15 @@
 ---
 sidebar_position: 5
-title: "Cost Optimization Patterns for EKS Auto Mode"
+title: Cost Optimization Patterns for EKS Auto Mode
 ---
 
 # Cost Optimization Patterns for EKS Auto Mode
 
 This example demonstrates two key cost optimization patterns: **OD/Spot mixed capacity** and **overprovision headroom via pause pods**.
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ---
 
@@ -84,9 +88,18 @@ You can combine both — run pause pods on Spot capacity so your headroom is che
 
 ## Deploy
 
+Apply the required NodePools (Graviton for arm64, Spot for spot capacity):
+
 ```bash
-kubectl apply -f examples/cost-optimization/mixed-od-spot-deployment.yaml
-kubectl apply -f examples/cost-optimization/overprovision-pause-pods.yaml
+kubectl apply -f ../../nodepools/graviton-nodepool.yaml
+kubectl apply -f ../../nodepools/spot-nodepool.yaml
+```
+
+Deploy the example workloads:
+
+```bash
+kubectl apply -f mixed-od-spot-deployment.yaml
+kubectl apply -f overprovision-pause-pods.yaml
 ```
 
 ---
@@ -95,33 +108,71 @@ kubectl apply -f examples/cost-optimization/overprovision-pause-pods.yaml
 
 **For the OD/Spot split deployment:**
 
+Check that pods spread across capacity types:
+
 ```bash
-# Check that pods spread across capacity types
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o wide
+```
 
-# Verify nodes have different capacity types
+Verify nodes have different capacity types:
+
+```bash
 kubectl get nodes -L karpenter.sh/capacity-type
+```
 
-# Count pods per capacity type
+Count pods per capacity type:
+
+```bash
 kubectl get pods -n cost-optimization -l app=web-mixed-capacity -o json | \
   jq -r '.items[].spec.nodeName' | \
-  xargs -I{} kubectl get node {} -o jsonpath='{.metadata.labels.karpenter\.sh/capacity-type}' | \
+  while read node; do kubectl get node "$node" -o jsonpath="{.metadata.labels.karpenter\.sh/capacity-type}"; echo; done | \
   sort | uniq -c
 ```
 
 **For overprovision/headroom:**
 
+Verify pause pods are running and holding resources:
+
 ```bash
-# Verify pause pods are running and holding resources
 kubectl get pods -n cost-optimization -l app=overprovision
+```
 
-# Check their priority class
+Check their priority class (should show `pause-pods`):
+
+```bash
 kubectl get pods -n cost-optimization -l app=overprovision -o jsonpath='{.items[0].spec.priorityClassName}'
+```
 
-# Watch preemption in action — scale a real workload and observe events
+Trigger preemption — in a second terminal, watch for preemption events:
+
+```bash
 kubectl get events -n cost-optimization --field-selector reason=Preempted -w
+```
 
-# Measure scheduling latency (time from creation to running)
-kubectl get pods -n cost-optimization -o json | \
-  jq '.items[] | select(.status.phase=="Running") | .metadata.name + ": " + (.status.conditions[] | select(.type=="PodScheduled") | .lastTransitionTime)'
+Then in your first terminal, scale the real workload so it needs the resources pause pods are holding:
+
+```bash
+kubectl scale deployment web-mixed-capacity -n cost-optimization --replicas=12
+```
+
+You should see pause pods get evicted (Preempted events in the watch terminal) and the new web pods schedule instantly on the freed capacity. The evicted pause pods will go Pending until new nodes launch, restoring headroom.
+
+Verify the pause pods were preempted and are now pending:
+
+```bash
+kubectl get pods -n cost-optimization -l app=overprovision
+```
+
+Scale back down to restore normal state:
+
+```bash
+kubectl scale deployment web-mixed-capacity -n cost-optimization --replicas=6
+```
+
+## Clean up
+
+```bash
+kubectl delete -f .
+kubectl delete -f ../../nodepools/graviton-nodepool.yaml
+kubectl delete -f ../../nodepools/spot-nodepool.yaml
 ```

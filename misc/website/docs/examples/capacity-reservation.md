@@ -1,6 +1,6 @@
 ---
 sidebar_position: 7
-title: "On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode"
+title: On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode
 ---
 
 # On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode
@@ -10,6 +10,10 @@ title: "On-Demand Capacity Reservation (ODCR) Targeting in EKS Auto Mode"
 On-Demand Capacity Reservations (ODCRs) let you reserve compute capacity in a specific Availability Zone for a specific instance type. Once created, the capacity is held for you regardless of whether any instances are running against it. You pay the on-demand rate for the reserved capacity whether it is used or not, so the goal is to ensure your workloads actually land on the reservation rather than launching as regular on-demand instances beside it.
 
 ODCRs are not the same as Reserved Instances or Savings Plans. Those are billing constructs that apply discounts retroactively. An ODCR is a physical capacity guarantee: the hosts are allocated and waiting for you.
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Why This Matters for ML/GPU Workloads
 
@@ -81,7 +85,7 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 | Compliance / dedicated tenancy | Some regulations require pre-allocated, non-shared capacity |
 | Event-driven spikes (launches, demos) | Reserve ahead, release after the event |
 
-## Prerequisites
+## ODCR Prerequisites
 
 1. **An existing ODCR** in the target AZ for the instance type you need.
    Create one via the EC2 console or CLI:
@@ -100,49 +104,51 @@ Monitor the `UsedInstanceCount` vs `TotalInstanceCount` in the EC2 Capacity Rese
 
 ## Deploy
 
-1. Render the template with your cluster values:
-   ```
-   terraform output -raw odcr_nodepool_manifest > odcr-nodepool.yaml
-   ```
-   Or substitute the variables manually in `odcr-nodepool.yaml.tpl`.
+Apply the ODCR NodePool and NodeClass (rendered from `odcr-nodepool.yaml.tpl` during infrastructure provisioning):
 
-2. Apply to your cluster:
-   ```
-   kubectl apply -f odcr-nodepool.yaml
-   ```
+```bash
+kubectl apply -f odcr-nodepool.yaml
+```
 
-3. Launch a GPU workload that tolerates the `nvidia.com/gpu` taint:
-   ```yaml
-   tolerations:
-     - key: "nvidia.com/gpu"
-       operator: Equal
-       value: "true"
-       effect: NoSchedule
-   resources:
-     limits:
-       nvidia.com/gpu: 1
-   ```
+Launch a GPU workload that tolerates the `nvidia.com/gpu` taint:
+
+```yaml
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+resources:
+  limits:
+    nvidia.com/gpu: 1
+```
 
 ## What to Observe
 
-1. **EC2 Console > Capacity Reservations**: Watch `Used instance count` increase as Auto Mode launches nodes into the reservation.
+Check the EC2 console Capacity Reservations page and watch `Used instance count` increase as Auto Mode launches nodes into the reservation.
 
-2. **Node labels**: Nodes launched into an ODCR carry standard EC2 metadata. Check instance details:
-   ```
-   aws ec2 describe-instances --instance-ids <id> --query 'Reservations[].Instances[].CapacityReservationId'
-   ```
+Verify an instance landed on the ODCR:
 
-3. **NodePool counters**: Verify the NodePool's resource usage is increasing:
-   ```
-   kubectl get nodepool odcr-gpu-nodepool -o yaml | grep -A5 status
-   ```
+```bash
+aws ec2 describe-instances --instance-ids <id> --query 'Reservations[].Instances[].CapacityReservationId'
+```
 
-4. **Fallback scenario**: If you scale beyond the reservation size, additional nodes will launch as regular on-demand. The `CapacityReservationId` field will be empty on those instances.
+Check the NodePool resource usage is increasing:
 
-## Cleanup
+```bash
+kubectl get nodepool odcr-gpu-nodepool -o yaml | grep -A5 status
+```
 
-To release ODCR capacity when no longer needed:
+List nodes provisioned by the NodePool:
 
-1. Scale down or delete workloads using the GPU taint.
-2. Delete the NodePool and NodeClass: `kubectl delete nodepool odcr-gpu-nodepool && kubectl delete nodeclass odcr-gpu-nodeclass`
-3. Cancel the capacity reservation: `aws ec2 cancel-capacity-reservation --capacity-reservation-id cr-0a1b2c3d4e5f67890`
+```bash
+kubectl get nodes -l karpenter.sh/nodepool=odcr-gpu-nodepool
+```
+
+If you scale beyond the reservation size, additional nodes launch as regular on-demand. The `CapacityReservationId` field will be empty on those overflow instances.
+
+## Clean up
+
+```bash
+kubectl delete -f odcr-nodepool.yaml
+```

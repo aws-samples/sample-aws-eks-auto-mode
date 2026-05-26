@@ -7,6 +7,19 @@ title: Observability with CloudWatch Container Insights
 
 This guide explains how EKS Auto Mode integrates with Amazon CloudWatch Container Insights to provide full-stack observability for your cluster without managing any monitoring infrastructure yourself.
 
+## Prerequisites
+
+- Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
+- Terraform installed and AWS credentials configured.
+
+## Deploy
+
+Enable the observability addon:
+
+```bash
+terraform -chdir=../../terraform apply -var="enable_observability=true"
+```
+
 ## What Container Insights Provides
 
 CloudWatch Container Insights delivers observability across three pillars:
@@ -78,7 +91,9 @@ CloudWatch Container Insights is metered. Key cost drivers:
 Set log retention via AWS CLI after deployment:
 
 ```bash
-aws logs put-retention-policy --log-group-name /aws/containerinsights/<cluster>/application --retention-in-days 30
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws logs put-retention-policy --log-group-name /aws/containerinsights/$CLUSTER/application --retention-in-days 30 --region $REGION
 ```
 
 ## Application Signals (Distributed Tracing)
@@ -123,17 +138,9 @@ You get service maps, latency histograms, error rates, and dependency graphs wit
 
 ---
 
-## Enable
+## What to Observe
 
-```bash
-terraform apply -var='enable_observability=true'
-```
-
-This creates the `amazon-cloudwatch-observability` EKS addon and attaches the `CloudWatchAgentServerPolicy` to the node IAM role.
-
-## Verify
-
-Check that the CloudWatch agent pods are running:
+Verify the CloudWatch agent pods are running:
 
 ```bash
 kubectl get pods -n amazon-cloudwatch
@@ -144,10 +151,17 @@ Expected output shows `amazon-cloudwatch-observability-controller-manager` and `
 Confirm metrics are flowing:
 
 ```bash
-aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=<cluster-name> --region <region>
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=$CLUSTER --region $REGION
 ```
 
-## Explore
+Check log groups were created:
+
+```bash
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws logs describe-log-groups --log-group-name-prefix /aws/containerinsights/ --region $REGION
+```
 
 Once deployed, explore these CloudWatch console paths:
 
@@ -156,18 +170,18 @@ Once deployed, explore these CloudWatch console paths:
 - **Application Signals:** `CloudWatch > Application Signals > Services`
 - **Metrics explorer:** `CloudWatch > Metrics > ContainerInsights`
 
-Direct console URL (also available as a Terraform output):
-
-```
-https://<region>.console.aws.amazon.com/cloudwatch/home?region=<region>#container-insights:infrastructure
-```
-
-## Disable
-
-To remove the observability addon and stop incurring costs:
+Get the direct console URL:
 
 ```bash
-terraform apply -var='enable_observability=false'
+terraform -chdir=../../terraform output cloudwatch_dashboard_url
 ```
 
-This removes the addon and detaches the IAM policy. Existing logs and metrics in CloudWatch are retained according to their retention settings.
+## Clean Up
+
+Disable the observability addon:
+
+```bash
+terraform -chdir=../../terraform apply -var="enable_observability=false"
+```
+
+This removes the CloudWatch agent DaemonSet and controller but does not delete existing log groups or metrics already stored in CloudWatch.

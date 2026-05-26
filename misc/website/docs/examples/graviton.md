@@ -1,6 +1,6 @@
 ---
 sidebar_position: 1
-title: "Graviton Workloads on EKS Auto Mode"
+title: Graviton Workloads on EKS Auto Mode
 ---
 
 # Graviton Workloads on EKS Auto Mode
@@ -11,6 +11,10 @@ title: "Graviton Workloads on EKS Auto Mode"
 - [Implementation Steps](#implementation-steps)
 - [Cleanup](#cleanup)
 - [Troubleshooting](#troubleshooting)
+
+## Prerequisites
+
+Cluster deployed and `kubectl` configured per [Quick Start](../../README.md#quick-start).
 
 ## Overview
 [AWS Graviton](https://aws.amazon.com/ec2/graviton/) processors deliver the best price performance for your cloud workloads running on Amazon EC2. Key benefits include:
@@ -45,25 +49,11 @@ This example demonstrates how to run Graviton workloads on EKS Auto Mode by conf
 
 ## Implementation Steps
 
-### 1. Setup EKS Auto Mode Cluster
-First, we'll set up our EKS cluster using Terraform:
-
-```bash
-cd sample-aws-eks-auto-mode/terraform
-
-terraform init
-terraform apply -auto-approve
-
-$(terraform output -raw configure_kubectl)
-```
-
-### 2. Deploy Graviton NodePool
+### 1. Deploy Graviton NodePool
 Deploy the NodePool that will manage our Graviton instances:
 
 ```bash
-cd ../nodepools
-
-kubectl apply -f graviton-nodepool.yaml
+kubectl apply -f ../../nodepools/graviton-nodepool.yaml
 ```
 
 > ⚠️ The Graviton NodePool applies the following taint to ensure only ARM64-compatible workloads are scheduled on these nodes:
@@ -77,12 +67,10 @@ kubectl apply -f graviton-nodepool.yaml
 >
 > Any pods that need to run on Graviton nodes must include matching tolerations in their specifications. This ensures workload compatibility with the ARM64 architecture.
 
-### 3. Deploy the 2048 Game
+### 2. Deploy the 2048 Game
 Deploy our ARM64-compatible 2048 game application:
 
 ```bash
-cd ../examples/graviton
-
 kubectl apply -f game-2048.yaml
 ```
 
@@ -98,14 +86,14 @@ kubectl apply -f game-2048.yaml
 >
 > This toleration enables the pods to be scheduled on our ARM64 Graviton instances.
 
-### 4. Configure Load Balancer
+### 3. Configure Load Balancer
 Set up the Application Load Balancer using Ingress:
 
 ```bash
 kubectl apply -f 2048-ingress.yaml
 ```
 
-### 5. Access the Application
+### 4. Access the Application
 
 By default, this example exposes its UI via an **internal ALB** — reachable from inside the VPC only. To access it from your laptop, use `kubectl port-forward`:
 
@@ -128,33 +116,13 @@ To expose the UI publicly over HTTPS, deploy the Terraform stack with `var.base_
 
 🧹 Follow these steps to clean up all resources:
 
-### 1. Remove Kubernetes Resources
-First, remove the application and node pool:
+Remove the application and node pool:
 
 ```bash
-# Remove application components
 kubectl delete -f 2048-ingress.yaml
 kubectl delete -f game-2048.yaml
-
-# Remove Graviton node pool
 kubectl delete -f ../../nodepools/graviton-nodepool.yaml
 ```
-
-### 2. Remove Cluster (Optional)
-If you're done with the entire cluster:
-
-```bash
-# Navigate to Terraform directory
-cd ../../terraform
-
-# Initialize and destroy infrastructure
-terraform init
-terraform destroy --auto-approve
-```
-
-> ⚠️ **Warning**: This will delete the entire EKS cluster and all associated resources. Make sure you want to proceed.
-
-> For a comprehensive teardown that also cleans up orphaned AWS resources (load balancers, volumes, ENIs, etc.), use `./scripts/cleanup.sh` from the repo root. See the [root README](../../README.md#cleanup) for details.
 
 ## Troubleshooting
 
