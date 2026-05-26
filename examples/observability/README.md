@@ -160,10 +160,10 @@ Once deployed, explore these CloudWatch console paths:
 - **Application Signals:** `CloudWatch > Application Signals > Services`
 - **Metrics explorer:** `CloudWatch > Metrics > ContainerInsights`
 
-Direct console URL:
+Get the direct console URL:
 
-```
-https://<region>.console.aws.amazon.com/cloudwatch/home?region=<region>#container-insights:infrastructure
+```bash
+terraform -chdir=../../terraform output cloudwatch_dashboard_url
 ```
 
 ## Clean Up
