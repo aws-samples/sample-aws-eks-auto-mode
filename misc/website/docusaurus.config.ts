@@ -88,8 +88,8 @@ const config: Config = {
 
   themeConfig: {
     metadata: [
-      {name: 'description', content: 'Learn Amazon EKS Auto Mode through deployable Terraform examples. Automate Kubernetes compute, storage, and networking — GPU, Spot, Graviton, cost optimization, and observability patterns.'},
-      {name: 'og:description', content: 'Deployable Terraform examples for EKS Auto Mode — automate Kubernetes the easy way. GPU, Spot, Graviton, ODCR, disruption budgets, and more.'},
+      {name: 'description', content: 'Learn Amazon EKS Auto Mode through deployable Terraform examples. Automate Kubernetes compute, storage, and networking. GPU, Spot, Graviton, cost optimization, and observability patterns.'},
+      {name: 'og:description', content: 'Deployable Terraform examples for EKS Auto Mode. Automate Kubernetes the easy way. GPU, Spot, Graviton, ODCR, disruption budgets, and more.'},
     ],
     navbar: {
       title: 'EKS Auto Mode Samples',

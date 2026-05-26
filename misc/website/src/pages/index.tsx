@@ -14,7 +14,7 @@ function Hero() {
           Deploy once, explore everything.
         </p>
         <p className="landing-hero__seo-description" style={{fontSize: '1rem', opacity: 0.85, maxWidth: '600px', margin: '0 auto 1.5rem'}}>
-          Automate Kubernetes compute, storage, and networking on AWS. Production-ready patterns for GPU, Spot, Graviton, cost optimization, capacity reservations, and more — no add-on management required.
+          Automate Kubernetes compute, storage, and networking on AWS. Production-ready patterns for GPU, Spot, Graviton, cost optimization, capacity reservations, and more. No add-on management required.
         </p>
         <div className="landing-hero__actions">
           <Link className="landing-hero__btn landing-hero__btn--primary" to="/docs/getting-started">
@@ -32,7 +32,7 @@ function Hero() {
 const features = [
   {
     title: 'Compute Patterns',
-    description: 'Graviton, GPU, Spot, and Neuron — each with a self-contained example explaining the "why" alongside the "how."',
+    description: 'Graviton, GPU, Spot, and Neuron. Each with a self-contained example explaining the "why" alongside the "how."',
   },
   {
     title: 'Cost Optimization',
