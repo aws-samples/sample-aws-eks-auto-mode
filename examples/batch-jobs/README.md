@@ -87,11 +87,6 @@ Verify the node exists and is not being drained (it will persist as long as the 
 kubectl get node $NODE
 ```
 
-Once the job completes, the annotation disappears with the pod and the node becomes eligible for consolidation again. Watch node lifecycle:
-
-```bash
-kubectl get nodes -w
-```
 
 ## Clean up
 
