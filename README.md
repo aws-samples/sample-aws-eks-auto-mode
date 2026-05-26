@@ -61,6 +61,9 @@ This repo ships as a [Claude Code](https://claude.ai/code) plugin with two AI-as
 
 ```bash
 /plugin marketplace add https://github.com/aws-samples/sample-aws-eks-auto-mode.git
+```
+
+```bash
 /plugin install eks-automode@sample-aws-eks-auto-mode
 ```
 

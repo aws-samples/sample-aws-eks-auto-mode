@@ -1,12 +1,6 @@
 ---
 name: eks-automode-onboard
-description: >
-  Onboarding guide for EKS Auto Mode newcomers. Use this skill when the user asks
-  about EKS Auto Mode concepts, wants to deploy their first Auto Mode cluster using
-  this repo, needs help picking an example, or hits common first-day issues. Trigger
-  phrases: "what is Auto Mode", "how do I deploy", "which example should I use",
-  "getting started with EKS Auto Mode", "first cluster", "deploy this repo",
-  "Auto Mode tutorial", "newbie", "onboard", "walkthrough".
+description: "Onboarding guide for EKS Auto Mode newcomers. Use when the user asks about EKS Auto Mode concepts, wants to deploy their first Auto Mode cluster, needs help picking an example, or hits common first-day issues. Triggers: what is Auto Mode, how do I deploy, which example, getting started, first cluster, deploy this repo, Auto Mode tutorial, onboard, walkthrough."
 ---
 
 # EKS Auto Mode Onboarding

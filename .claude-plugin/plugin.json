@@ -1,7 +1,7 @@
 {
   "name": "eks-automode",
   "displayName": "EKS Auto Mode Skills",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Two Claude Code skills for EKS Auto Mode: onboarding guide for newcomers and maintenance playbook for repo maintainers",
   "author": {
     "name": "AWS Samples",

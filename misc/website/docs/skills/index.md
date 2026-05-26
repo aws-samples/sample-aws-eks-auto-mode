@@ -20,6 +20,9 @@ The fastest path. Run these two commands inside Claude Code:
 
 ```bash
 /plugin marketplace add https://github.com/aws-samples/sample-aws-eks-auto-mode.git
+```
+
+```bash
 /plugin install eks-automode@sample-aws-eks-auto-mode
 ```
 
