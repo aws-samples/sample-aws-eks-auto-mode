@@ -42,6 +42,65 @@ EKS Auto Mode manages the node lifecycle (provisioning, scaling, patching, termi
 
 Because Auto Mode manages nodes and the addon manages observability, you get a fully hands-off monitoring stack. No Helm charts to maintain, no Prometheus to scale, no Fluentd config files to debug.
 
+## Node Metrics on EKS Auto Mode (Bottlerocket)
+
+EKS Auto Mode runs a hardened, AWS-managed Bottlerocket OS. You cannot SSH into these nodes, cannot run custom AMIs, and DaemonSet scheduling is restricted to compatible addons. Despite this, the `amazon-cloudwatch-observability` addon is explicitly compatible with Auto Mode compute (`computeTypes: ["ec2", "auto", "hybrid"]`) and collects full node-level metrics from Bottlerocket nodes.
+
+### Verified: What Node Metrics Are Available
+
+The following node metrics were verified on a live EKS Auto Mode cluster running Bottlerocket (EKS Auto, Standard) 2026.6.19 with addon version v6.3.0-eksbuild.1 (at time of writing):
+
+| Category | Metric | Description |
+|----------|--------|-------------|
+| **CPU** | `node_cpu_utilization` | Percentage of CPU in use |
+| | `node_cpu_usage_total` | Total CPU usage in millicores |
+| | `node_cpu_limit` | Total CPU capacity (millicores) |
+| | `node_cpu_reserved_capacity` | Percentage of CPU reserved by pod requests |
+| **Memory** | `node_memory_utilization` | Percentage of memory in use |
+| | `node_memory_working_set` | Memory working set in bytes |
+| | `node_memory_limit` | Total memory capacity (bytes) |
+| | `node_memory_reserved_capacity` | Percentage of memory reserved by pod requests |
+| **Disk/Filesystem** | `node_filesystem_utilization` | Percentage of filesystem in use |
+| | `node_filesystem_inodes` | Total inode count |
+| | `node_filesystem_inodes_free` | Available inodes |
+| **Network** | `node_network_total_bytes` | Total bytes in + out per second |
+| | `node_interface_network_rx_dropped` | Dropped inbound packets |
+| | `node_interface_network_tx_dropped` | Dropped outbound packets |
+| **Pod Capacity** | `node_number_of_running_pods` | Current pod count on node |
+| | `node_number_of_running_containers` | Current container count on node |
+| | `node_status_allocatable_pods` | Max pods this node can run |
+| | `node_status_capacity_pods` | Pod capacity of node |
+| **Health Conditions** | `node_status_condition_ready` | Node readiness (1 = ready) |
+| | `node_status_condition_disk_pressure` | Disk pressure condition |
+| | `node_status_condition_memory_pressure` | Memory pressure condition |
+| | `node_status_condition_pid_pressure` | PID pressure condition |
+| | `node_status_condition_unknown` | Unknown condition |
+
+Every metric is emitted at two dimension levels:
+- **Cluster aggregate:** `ClusterName` only (average across all nodes)
+- **Per-node:** `ClusterName` + `InstanceId` + `NodeName` (individual node breakdown)
+
+### Sample Output
+
+Queried from a live Auto Mode cluster with a CPU stress workload:
+
+```
+node_cpu_utilization:          99.89%   (stress test active)
+node_memory_utilization:       14.68%
+node_filesystem_utilization:   12.91%
+node_network_total_bytes:      50,264 bytes/sec
+```
+
+### Why This Matters
+
+Third-party monitoring agents (Dynatrace OneAgent, Datadog host agent, New Relic Infrastructure) that require host-level OS access cannot run on Auto Mode's hardened Bottlerocket nodes. The CloudWatch Container Insights addon is the supported path for node-level metrics because it collects from the kubelet/cAdvisor APIs rather than requiring direct host filesystem access.
+
+If you need these metrics in a third-party platform, the supported integration paths are:
+
+1. **CloudWatch Metric Streams + Amazon Data Firehose** (push-based, low latency) -- streams metrics from the `ContainerInsights` namespace to any OTLP-compatible endpoint
+2. **Third-party ActiveGate/polling agent** (pull-based) -- polls CloudWatch APIs for the `ContainerInsights` namespace
+3. **Prometheus node-exporter DaemonSet + OTel Collector** -- node-exporter reads from `/proc` and `/sys` mounted into the container, then an OTel Collector scrapes and exports to your backend's OTLP endpoint
+
 ## What You Get Out of the Box
 
 Once enabled, the following are created automatically:
@@ -158,10 +217,25 @@ REGION=$(terraform -chdir=../../terraform output -raw region)
 aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=ClusterName,Value=$CLUSTER --region $REGION
 ```
 
+Query node metrics directly:
+
+```bash
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
+aws cloudwatch get-metric-data --region $REGION \
+  --start-time $(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ) \
+  --end-time $(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  --metric-data-queries '[
+    {"Id":"cpu","MetricStat":{"Metric":{"Namespace":"ContainerInsights","MetricName":"node_cpu_utilization","Dimensions":[{"Name":"ClusterName","Value":"'$CLUSTER'"}]},"Period":60,"Stat":"Average"}},
+    {"Id":"mem","MetricStat":{"Metric":{"Namespace":"ContainerInsights","MetricName":"node_memory_utilization","Dimensions":[{"Name":"ClusterName","Value":"'$CLUSTER'"}]},"Period":60,"Stat":"Average"}},
+    {"Id":"disk","MetricStat":{"Metric":{"Namespace":"ContainerInsights","MetricName":"node_filesystem_utilization","Dimensions":[{"Name":"ClusterName","Value":"'$CLUSTER'"}]},"Period":60,"Stat":"Average"}},
+    {"Id":"net","MetricStat":{"Metric":{"Namespace":"ContainerInsights","MetricName":"node_network_total_bytes","Dimensions":[{"Name":"ClusterName","Value":"'$CLUSTER'"}]},"Period":60,"Stat":"Average"}}
+  ]' --output table
+```
+
 Check log groups were created:
 
 ```bash
-REGION=$(terraform -chdir=../../terraform output -raw region)
 aws logs describe-log-groups --log-group-name-prefix /aws/containerinsights/ --region $REGION
 ```
 

@@ -41,7 +41,7 @@ EKS Auto Mode runs a hardened, AWS-managed Bottlerocket OS. You cannot SSH into 
 
 ### Verified: What Node Metrics Are Available
 
-The following node metrics were verified on a live EKS Auto Mode cluster running Bottlerocket (EKS Auto, Standard) 2026.6.19 with addon version v6.3.0-eksbuild.1:
+The following node metrics were verified on a live EKS Auto Mode cluster running Bottlerocket (EKS Auto, Standard) 2026.6.19 with addon version v6.3.0-eksbuild.1 (at time of writing):
 
 | Category | Metric | Description |
 |----------|--------|-------------|
@@ -213,6 +213,8 @@ aws cloudwatch list-metrics --namespace ContainerInsights --dimensions Name=Clus
 Query node metrics directly:
 
 ```bash
+CLUSTER=$(terraform -chdir=../../terraform output -raw cluster_name)
+REGION=$(terraform -chdir=../../terraform output -raw region)
 aws cloudwatch get-metric-data --region $REGION \
   --start-time $(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%M:%SZ) \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%SZ) \
