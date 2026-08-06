@@ -61,7 +61,16 @@ locals {
 }
 
 provider "kubectl" {
-  apply_retry_count      = 5
+  apply_retry_count = 5
+  # lazy_load defers building the Kubernetes client until a kubectl_manifest
+  # resource is actually applied, rather than at provider-configure time.
+  # Required for a single-pass `terraform apply` on a fresh account: the EKS
+  # cluster is created in the same run, so host/CA are unknown at plan time.
+  # alekc/kubectl >= 2.3.0 configures eagerly by default and otherwise fails
+  # with "invalid provider configuration: no configuration has been provided"
+  # (see alekc/terraform-provider-kubectl#283). The helm/kubernetes providers
+  # already defer this, which is why they don't hit the same error.
+  lazy_load              = true
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   load_config_file       = false
